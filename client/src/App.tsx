@@ -3,6 +3,7 @@ import { TitleBar } from "./components/TitleBar";
 import { StatusFilter } from "./components/StatusFilter";
 import { TaskList } from "./components/TaskList";
 import { AddTask } from "./components/AddTask";
+import { Editor } from "./components/Editor";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <StatusFilter />
       <AddTask />
       <TaskList />
+      <Editor />
     </GlassPanel>
   );
 }
