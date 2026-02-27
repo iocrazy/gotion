@@ -1,13 +1,16 @@
 import { GlassPanel } from "./components/GlassPanel";
 import { TitleBar } from "./components/TitleBar";
+import { StatusFilter } from "./components/StatusFilter";
+import { TaskList } from "./components/TaskList";
+import { AddTask } from "./components/AddTask";
 
 function App() {
   return (
     <GlassPanel>
       <TitleBar />
-      <div className="px-4 py-2 text-white/80 text-sm">
-        <p>Gotion - Tasks will appear here</p>
-      </div>
+      <StatusFilter />
+      <AddTask />
+      <TaskList />
     </GlassPanel>
   );
 }
