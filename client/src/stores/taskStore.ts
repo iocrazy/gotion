@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import { api } from "../lib/api";
 import type { Task } from "../lib/api";
+import type { GroupBy } from "../components/TitleBar";
 
 type StatusFilter = "all" | "todo" | "done";
+type Priority = "none" | "low" | "medium" | "high";
 
 interface TaskState {
   tasks: Task[];
   filter: StatusFilter;
+  groupBy: GroupBy;
   selectedTaskId: string | null;
   loading: boolean;
   error: string | null;
@@ -14,8 +17,9 @@ interface TaskState {
   // Actions
   fetchTasks: () => Promise<void>;
   setFilter: (filter: StatusFilter) => void;
+  setGroupBy: (groupBy: GroupBy) => void;
   selectTask: (id: string | null) => void;
-  createTask: (title: string) => Promise<void>;
+  createTask: (title: string, opts?: { due_date?: string; priority?: Priority }) => Promise<void>;
   updateTask: (
     id: string,
     data: {
@@ -35,6 +39,7 @@ interface TaskState {
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   filter: "all",
+  groupBy: "status",
   selectedTaskId: null,
   loading: false,
   error: null,
@@ -56,11 +61,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     get().fetchTasks();
   },
 
+  setGroupBy: (groupBy) => set({ groupBy }),
+
   selectTask: (id) => set({ selectedTaskId: id }),
 
-  createTask: async (title) => {
+  createTask: async (title, opts) => {
     try {
-      const task = await api.createTask({ title });
+      const task = await api.createTask({
+        title,
+        due_date: opts?.due_date,
+      });
       set((state) => ({ tasks: [task, ...state.tasks] }));
     } catch (e) {
       set({ error: String(e) });

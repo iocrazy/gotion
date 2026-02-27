@@ -2,40 +2,24 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { useEffect, useCallback, useRef } from "react";
-import { useTaskStore } from "../stores/taskStore";
 import { api } from "../lib/api";
 import type { Block } from "../lib/api";
 
-export function Editor() {
-  const { selectedTaskId } = useTaskStore();
+interface EditorProps {
+  taskId: string;
+}
+
+export function Editor({ taskId }: EditorProps) {
   const blocksRef = useRef<Block[]>([]);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const editor = useEditor({
-    extensions: [StarterKit, Image],
-    content: "",
-    editorProps: {
-      attributes: {
-        class:
-          "outline-none min-h-[200px] text-sm text-white/90 prose prose-invert prose-sm max-w-none",
-      },
-    },
-    onUpdate: ({ editor }) => {
-      // Debounced save
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        saveContent(editor.getJSON());
-      }, 1000);
-    },
-  });
-
   const saveContent = useCallback(
     async (json: unknown) => {
-      if (!selectedTaskId) return;
+      if (!taskId) return;
       const blocks: Block[] = [
         {
           id: blocksRef.current[0]?.id || crypto.randomUUID(),
-          task_id: selectedTaskId,
+          task_id: taskId,
           notion_block_id: null,
           type: "tiptap_doc",
           content: json,
@@ -44,25 +28,45 @@ export function Editor() {
         },
       ];
       try {
-        const saved = await api.updateBlocks(selectedTaskId, blocks);
+        const saved = await api.updateBlocks(taskId, blocks);
         blocksRef.current = saved;
       } catch (e) {
         console.error("Failed to save content:", e);
       }
     },
-    [selectedTaskId],
+    [taskId],
   );
 
-  // Load content when task is selected
+  const editor = useEditor({
+    extensions: [StarterKit, Image],
+    content: "",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm prose-invert focus:outline-none max-w-none min-h-[100px] p-4",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        saveContent(editor.getJSON());
+      }, 1000);
+    },
+  });
+
+  // Load content when task changes
   useEffect(() => {
-    if (!selectedTaskId || !editor) return;
+    if (!taskId || !editor) return;
 
     const loadContent = async () => {
       try {
-        const blocks = await api.getBlocks(selectedTaskId);
+        const blocks = await api.getBlocks(taskId);
         blocksRef.current = blocks;
         if (blocks.length > 0 && blocks[0].content) {
-          editor.commands.setContent(blocks[0].content as Parameters<typeof editor.commands.setContent>[0]);
+          editor.commands.setContent(
+            blocks[0].content as Parameters<typeof editor.commands.setContent>[0]
+          );
         } else {
           editor.commands.setContent("");
         }
@@ -73,15 +77,7 @@ export function Editor() {
     };
 
     loadContent();
-  }, [selectedTaskId, editor]);
+  }, [taskId, editor]);
 
-  if (!selectedTaskId) {
-    return null;
-  }
-
-  return (
-    <div className="px-3 py-2 border-t border-white/10 flex-1 overflow-y-auto">
-      <EditorContent editor={editor} />
-    </div>
-  );
+  return <EditorContent editor={editor} />;
 }

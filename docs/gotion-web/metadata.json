@@ -1,0 +1,5 @@
+{
+  "name": "Gotion Web",
+  "description": "A web-based Notion-synced TodoList application with offline support and glassmorphism UI.",
+  "requestFramePermissions": []
+}

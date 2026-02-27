@@ -1,9 +1,7 @@
 import { GlassPanel } from "./components/GlassPanel";
 import { TitleBar } from "./components/TitleBar";
-import { StatusFilter } from "./components/StatusFilter";
 import { TaskList } from "./components/TaskList";
 import { AddTask } from "./components/AddTask";
-import { Editor } from "./components/Editor";
 import { useWebSocket } from "./hooks/useWebSocket";
 
 function App() {
@@ -12,16 +10,21 @@ function App() {
   return (
     <GlassPanel>
       <TitleBar />
-      <StatusFilter />
+
+      {/* Task List (Scrollable) */}
+      <div className="flex-1 overflow-y-auto p-2">
+        <TaskList />
+      </div>
+
+      {/* Add Task Input */}
       <AddTask />
-      <TaskList />
-      <Editor />
-      <div className="px-3 py-1 text-[10px] text-white/30">
+
+      <div className="px-3 py-1 text-[10px] text-white/20 text-center">
         {syncStatus === "connected"
-          ? "● 已连接"
+          ? "● Synced"
           : syncStatus === "connecting"
-            ? "○ 连接中..."
-            : "● 未连接"}
+            ? "○ Connecting..."
+            : "● Offline"}
       </div>
     </GlassPanel>
   );
