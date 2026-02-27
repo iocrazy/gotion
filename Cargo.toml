@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["shared", "server"]
+members = ["shared", "server", "client/src-tauri"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
