@@ -1,0 +1,6 @@
+target/
+.env
+*.swp
+*.swo
+node_modules/
+dist/
