@@ -22,3 +22,4 @@ log = "0.4"
 tauri = { version = "2.10.0" }
 tauri-plugin-log = "2"
 gotion-shared = { path = "../../shared" }
+rusqlite = { version = "0.32", features = ["bundled"] }

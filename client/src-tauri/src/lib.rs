@@ -1,3 +1,8 @@
+mod db;
+
+use db::cache::CacheDb;
+use tauri::Manager;
+
 #[tauri::command]
 async fn snap_to_edge(window: tauri::Window) -> Result<(), String> {
     let win_pos = window.outer_position().map_err(|e| e.to_string())?;
@@ -58,6 +63,37 @@ async fn snap_to_edge(window: tauri::Window) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn cache_tasks(state: tauri::State<'_, CacheDb>, tasks_json: String) -> Result<(), String> {
+    state.cache_tasks(&tasks_json)
+}
+
+#[tauri::command]
+async fn get_cached_tasks(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
+    state.get_cached_tasks()
+}
+
+#[tauri::command]
+async fn queue_offline_op(
+    state: tauri::State<'_, CacheDb>,
+    entity_type: String,
+    entity_id: String,
+    action: String,
+    payload: String,
+) -> Result<(), String> {
+    state.queue_offline_op(&entity_type, &entity_id, &action, &payload)
+}
+
+#[tauri::command]
+async fn get_offline_queue(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
+    state.get_offline_queue()
+}
+
+#[tauri::command]
+async fn clear_offline_queue(state: tauri::State<'_, CacheDb>, up_to_id: i64) -> Result<(), String> {
+    state.clear_offline_queue(up_to_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -69,9 +105,21 @@ pub fn run() {
             .build(),
         )?;
       }
+
+      let app_dir = app.path().app_data_dir().expect("Failed to get app data dir");
+      let cache_db = CacheDb::new(app_dir).expect("Failed to initialize cache DB");
+      app.manage(cache_db);
+
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![snap_to_edge])
+    .invoke_handler(tauri::generate_handler![
+      snap_to_edge,
+      cache_tasks,
+      get_cached_tasks,
+      queue_offline_op,
+      get_offline_queue,
+      clear_offline_queue,
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
