@@ -1,5 +1,6 @@
 mod api;
 mod db;
+mod sync;
 mod ws;
 
 use api::AppState;
