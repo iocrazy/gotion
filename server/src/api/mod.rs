@@ -1,14 +1,17 @@
 pub mod blocks;
 pub mod tasks;
 
+use std::sync::Arc;
 use axum::Router;
 use sqlx::PgPool;
+use crate::sync::notion_client::NotionClient;
 use crate::ws::WsBroadcast;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
     pub broadcast: WsBroadcast,
+    pub notion_client: Arc<NotionClient>,
 }
 
 pub fn router(state: AppState) -> Router {

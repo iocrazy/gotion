@@ -127,12 +127,17 @@ pub async fn create_task(
 
 /// Update an existing task with optional partial fields.
 /// Tracks per-field timestamp changes (title_updated_at, status_updated_at, due_date_updated_at).
+///
+/// `due_date` uses `Option<Option<NaiveDate>>`:
+/// - `None` means do not touch the due date field
+/// - `Some(None)` means clear the due date
+/// - `Some(Some(date))` means set the due date to the given value
 pub async fn update_task(
     pool: &PgPool,
     id: Uuid,
     title: Option<String>,
     status: Option<TaskStatus>,
-    due_date: Option<NaiveDate>,
+    due_date: Option<Option<NaiveDate>>,
 ) -> Result<Option<Task>, sqlx::Error> {
     // First fetch the current task to merge fields
     let existing = match get_task(pool, id).await? {
@@ -145,8 +150,8 @@ pub async fn update_task(
     let new_title = title.as_deref().unwrap_or(&existing.title);
     let new_status_enum = status.as_ref().unwrap_or(&existing.status);
     let new_status_str = status_to_str(new_status_enum);
-    let new_due_date = if due_date.is_some() {
-        due_date
+    let new_due_date = if let Some(dd) = due_date {
+        dd
     } else {
         existing.due_date
     };
