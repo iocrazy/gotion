@@ -1,6 +1,8 @@
+mod api;
 mod db;
 
 use sqlx::postgres::PgPoolOptions;
+use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
@@ -14,5 +16,10 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
 
-    tracing::info!("Connected to database");
+    let app = api::router(pool).layer(CorsLayer::permissive());
+
+    let addr = "0.0.0.0:3001";
+    tracing::info!("Server listening on {addr}");
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
