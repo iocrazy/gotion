@@ -1,8 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 
 export function TitleBar() {
   const [pinned, setPinned] = useState(false);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      // Small delay to let the window position settle after drag
+      setTimeout(() => {
+        invoke("snap_to_edge").catch(console.error);
+      }, 50);
+    };
+
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, []);
 
   const togglePin = async () => {
     const appWindow = getCurrentWindow();
