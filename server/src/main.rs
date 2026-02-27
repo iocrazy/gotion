@@ -1,8 +1,11 @@
 mod api;
 mod db;
+mod ws;
 
+use api::AppState;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
+use axum::routing::get;
 
 #[tokio::main]
 async fn main() {
@@ -16,7 +19,12 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
 
-    let app = api::router(pool).layer(CorsLayer::permissive());
+    let broadcast = ws::WsBroadcast::new();
+    let state = AppState { pool, broadcast: broadcast.clone() };
+
+    let app = api::router(state)
+        .route("/ws", get(ws::handler::ws_handler).with_state(broadcast))
+        .layer(CorsLayer::permissive());
 
     let addr = "0.0.0.0:3001";
     tracing::info!("Server listening on {addr}");
