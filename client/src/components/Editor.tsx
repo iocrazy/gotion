@@ -45,7 +45,7 @@ export function Editor({ taskId }: EditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm prose-invert focus:outline-none max-w-none min-h-[100px] p-4",
+          "prose prose-sm prose-invert focus:outline-none max-w-none min-h-[100px] px-4 py-2 text-sm font-light",
       },
       handleDrop: (_view, event) => {
         const files = event.dataTransfer?.files;
@@ -119,7 +119,7 @@ export function Editor({ taskId }: EditorProps) {
   return (
     <div>
       {editor && (
-        <div className="flex items-center px-4 pt-2 border-b border-white/5 pb-2">
+        <div className="flex items-center px-4 pt-2 pb-2" style={{ borderBottom: "1px solid var(--border)" }}>
           <button
             onClick={() => {
               const input = document.createElement("input");
@@ -131,10 +131,10 @@ export function Editor({ taskId }: EditorProps) {
               };
               input.click();
             }}
-            className="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+            className="p-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             title="Insert image"
           >
-            <ImagePlus className="w-4 h-4" />
+            <ImagePlus className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
