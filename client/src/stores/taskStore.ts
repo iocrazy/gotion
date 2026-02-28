@@ -37,6 +37,21 @@ interface TaskState {
   removeTask: (id: string) => void;
 }
 
+async function queueOfflineOp(entityType: string, entityId: string, action: string, payload: unknown) {
+  if (isTauri()) {
+    try {
+      await tauriInvoke("queue_offline_op", {
+        entityType,
+        entityId,
+        action,
+        payload: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.error("Failed to queue offline op:", e);
+    }
+  }
+}
+
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   filter: "all",
@@ -88,32 +103,57 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         due_date: opts?.due_date,
       });
       set((state) => ({ tasks: [task, ...state.tasks] }));
-    } catch (e) {
-      set({ error: String(e) });
+    } catch {
+      // Offline: optimistic update + queue
+      const tempTask: Task = {
+        id: crypto.randomUUID(),
+        notion_id: null,
+        title,
+        status: "todo",
+        due_date: opts?.due_date ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        title_updated_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
+        due_date_updated_at: opts?.due_date ? new Date().toISOString() : null,
+      };
+      set((state) => ({ tasks: [tempTask, ...state.tasks] }));
+      await queueOfflineOp("task", tempTask.id, "create", {
+        title,
+        due_date: opts?.due_date,
+      });
     }
   },
 
   updateTask: async (id, data) => {
+    // Optimistic update first
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, ...data, updated_at: new Date().toISOString() } : t
+      ),
+    }));
     try {
       const updated = await api.updateTask(id, data);
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === id ? updated : t)),
       }));
-    } catch (e) {
-      set({ error: String(e) });
+    } catch {
+      // Keep optimistic update, queue for later
+      await queueOfflineOp("task", id, "update", data);
     }
   },
 
   deleteTask: async (id) => {
+    // Optimistic delete
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== id),
+      selectedTaskId: state.selectedTaskId === id ? null : state.selectedTaskId,
+    }));
     try {
       await api.deleteTask(id);
-      set((state) => ({
-        tasks: state.tasks.filter((t) => t.id !== id),
-        selectedTaskId:
-          state.selectedTaskId === id ? null : state.selectedTaskId,
-      }));
-    } catch (e) {
-      set({ error: String(e) });
+    } catch {
+      // Queue for later (item already removed from UI)
+      await queueOfflineOp("task", id, "delete", {});
     }
   },
 
