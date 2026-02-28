@@ -90,4 +90,16 @@ export const api = {
     if (!res.ok) throw new Error(`Failed to update blocks: ${res.status}`);
     return res.json();
   },
+
+  async uploadImage(file: File): Promise<{ id: string; url: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${getBaseUrl()}/api/images`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Failed to upload image: ${res.status}`);
+    const data = await res.json();
+    return { id: data.id, url: `${getBaseUrl()}${data.url}` };
+  },
 };

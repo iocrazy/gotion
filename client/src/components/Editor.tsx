@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { useEffect, useCallback, useRef } from "react";
+import { ImagePlus } from "lucide-react";
 import { api } from "../lib/api";
 import type { Block } from "../lib/api";
 
@@ -46,6 +47,32 @@ export function Editor({ taskId }: EditorProps) {
         class:
           "prose prose-sm prose-invert focus:outline-none max-w-none min-h-[100px] p-4",
       },
+      handleDrop: (_view, event) => {
+        const files = event.dataTransfer?.files;
+        if (files?.length) {
+          event.preventDefault();
+          for (const file of Array.from(files)) {
+            if (file.type.startsWith("image/")) {
+              handleImageUpload(file);
+            }
+          }
+          return true;
+        }
+        return false;
+      },
+      handlePaste: (_view, event) => {
+        const files = event.clipboardData?.files;
+        if (files?.length) {
+          for (const file of Array.from(files)) {
+            if (file.type.startsWith("image/")) {
+              event.preventDefault();
+              handleImageUpload(file);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor }) => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -54,6 +81,16 @@ export function Editor({ taskId }: EditorProps) {
       }, 1000);
     },
   });
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!editor) return;
+    try {
+      const { url } = await api.uploadImage(file);
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch (e) {
+      console.error("Failed to upload image:", e);
+    }
+  }, [editor]);
 
   // Load content when task changes
   useEffect(() => {
@@ -79,5 +116,29 @@ export function Editor({ taskId }: EditorProps) {
     loadContent();
   }, [taskId, editor]);
 
-  return <EditorContent editor={editor} />;
+  return (
+    <div>
+      {editor && (
+        <div className="flex items-center px-4 pt-2 border-b border-white/5 pb-2">
+          <button
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+              input.onchange = () => {
+                const file = input.files?.[0];
+                if (file) handleImageUpload(file);
+              };
+              input.click();
+            }}
+            className="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+            title="Insert image"
+          >
+            <ImagePlus className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      <EditorContent editor={editor} />
+    </div>
+  );
 }
