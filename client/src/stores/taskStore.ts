@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { api } from "../lib/api";
 import type { Task } from "../lib/api";
 import type { GroupBy } from "../components/TitleBar";
+import { isTauri, tauriInvoke } from "../lib/tauri";
 
 type StatusFilter = "all" | "todo" | "done";
 type Priority = "none" | "low" | "medium" | "high";
@@ -51,7 +52,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const status = filter === "all" ? undefined : filter;
       const tasks = await api.listTasks(status);
       set({ tasks, loading: false });
+      // Cache to SQLite in background (fire-and-forget)
+      if (isTauri()) {
+        tauriInvoke("cache_tasks", { tasksJson: JSON.stringify(tasks) }).catch(console.error);
+      }
     } catch (e) {
+      // Fallback to SQLite cache
+      if (isTauri()) {
+        try {
+          const cached = await tauriInvoke<string>("get_cached_tasks");
+          const tasks = JSON.parse(cached);
+          set({ tasks, loading: false, error: "Offline mode" });
+          return;
+        } catch {
+          // SQLite also failed, fall through
+        }
+      }
       set({ error: String(e), loading: false });
     }
   },
