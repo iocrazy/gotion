@@ -95,6 +95,16 @@ async fn clear_offline_queue(state: tauri::State<'_, CacheDb>, up_to_id: i64) ->
 }
 
 #[tauri::command]
+async fn cache_categories(state: tauri::State<'_, CacheDb>, categories_json: String) -> Result<(), String> {
+    state.cache_categories(&categories_json)
+}
+
+#[tauri::command]
+async fn get_cached_categories(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
+    state.get_cached_categories()
+}
+
+#[tauri::command]
 async fn get_settings(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
     let server_url = state.get_setting("server_url")?
         .unwrap_or_else(|| "http://localhost:3001".to_string());
@@ -144,6 +154,8 @@ pub fn run() {
       snap_to_edge,
       cache_tasks,
       get_cached_tasks,
+      cache_categories,
+      get_cached_categories,
       queue_offline_op,
       get_offline_queue,
       clear_offline_queue,

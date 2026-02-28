@@ -42,8 +42,20 @@ impl CacheDb {
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS categories (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                icon TEXT,
+                color TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0
             );"
         ).map_err(|e| e.to_string())?;
+
+        // Add new columns to tasks table (silently ignore if already exist)
+        let _ = conn.execute("ALTER TABLE tasks ADD COLUMN category_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE tasks ADD COLUMN parent_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0", []);
 
         Ok(Self { conn: Mutex::new(conn) })
     }
@@ -56,13 +68,16 @@ impl CacheDb {
 
         for task in &tasks {
             conn.execute(
-                "INSERT OR REPLACE INTO tasks (id, title, status, due_date, updated_at, is_dirty) VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+                "INSERT OR REPLACE INTO tasks (id, title, status, due_date, updated_at, is_dirty, category_id, parent_id, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8)",
                 params![
                     task["id"].as_str().unwrap_or(""),
                     task["title"].as_str().unwrap_or(""),
                     task["status"].as_str().unwrap_or("todo"),
                     task["due_date"].as_str(),
                     task["updated_at"].as_str().unwrap_or(""),
+                    task["category_id"].as_str(),
+                    task["parent_id"].as_str(),
+                    task["sort_order"].as_i64().unwrap_or(0),
                 ],
             ).map_err(|e| e.to_string())?;
         }
@@ -73,7 +88,7 @@ impl CacheDb {
     pub fn get_cached_tasks(&self) -> Result<String, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn.prepare(
-            "SELECT id, title, status, due_date, updated_at FROM tasks ORDER BY due_date ASC"
+            "SELECT id, title, status, due_date, updated_at, category_id, parent_id, sort_order FROM tasks ORDER BY sort_order ASC, due_date ASC"
         ).map_err(|e| e.to_string())?;
 
         let tasks: Vec<serde_json::Value> = stmt.query_map([], |row| {
@@ -83,12 +98,54 @@ impl CacheDb {
                 "status": row.get::<_, String>(2)?,
                 "due_date": row.get::<_, Option<String>>(3)?,
                 "updated_at": row.get::<_, String>(4)?,
+                "category_id": row.get::<_, Option<String>>(5)?,
+                "parent_id": row.get::<_, Option<String>>(6)?,
+                "sort_order": row.get::<_, i64>(7)?,
             }))
         }).map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())
         .collect();
 
         serde_json::to_string(&tasks).map_err(|e| e.to_string())
+    }
+
+    /// Cache categories from server response
+    pub fn cache_categories(&self, categories_json: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let categories: Vec<serde_json::Value> = serde_json::from_str(categories_json)
+            .map_err(|e| e.to_string())?;
+        for cat in &categories {
+            conn.execute(
+                "INSERT OR REPLACE INTO categories (id, name, icon, color, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    cat["id"].as_str().unwrap_or(""),
+                    cat["name"].as_str().unwrap_or(""),
+                    cat["icon"].as_str(),
+                    cat["color"].as_str(),
+                    cat["sort_order"].as_i64().unwrap_or(0),
+                ],
+            ).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
+    /// Get cached categories
+    pub fn get_cached_categories(&self) -> Result<String, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare("SELECT id, name, icon, color, sort_order FROM categories ORDER BY sort_order ASC")
+            .map_err(|e| e.to_string())?;
+        let categories: Vec<serde_json::Value> = stmt.query_map([], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "name": row.get::<_, String>(1)?,
+                "icon": row.get::<_, Option<String>>(2)?,
+                "color": row.get::<_, Option<String>>(3)?,
+                "sort_order": row.get::<_, i64>(4)?,
+            }))
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+        serde_json::to_string(&categories).map_err(|e| e.to_string())
     }
 
     /// Queue an offline operation
