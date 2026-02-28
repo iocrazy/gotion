@@ -1,30 +1,62 @@
 import { useState, useEffect } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { useTaskStore } from "../stores/taskStore";
 import { Editor } from "./Editor";
-import { X, Calendar, Flag, Trash2 } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { format, startOfToday, startOfTomorrow, addDays, isSameYear } from "date-fns";
-import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "../lib/utils";
-import type { Task } from "../lib/api";
 
-interface TaskDetailPanelProps {
-  task: Task;
-  isOpen: boolean;
-  onClose: () => void;
-}
+const COLLAPSED_WIDTH = 380;
+const EXPANDED_WIDTH = 700;
 
-export function TaskDetailPanel({ task, isOpen, onClose }: TaskDetailPanelProps) {
-  const { updateTask, deleteTask } = useTaskStore();
-  const [title, setTitle] = useState(task.title);
+export function TaskDetailPanel() {
+  const { selectedTaskId, selectTask, tasks, updateTask, deleteTask } = useTaskStore();
+  const task = tasks.find((t) => t.id === selectedTaskId);
+  const isOpen = !!task;
+
+  const [title, setTitle] = useState("");
 
   useEffect(() => {
-    setTitle(task.title);
+    if (task) setTitle(task.title);
   }, [task]);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-    updateTask(task.id, { title: e.target.value });
+  // Resize window when panel opens/closes
+  useEffect(() => {
+    const resize = async () => {
+      try {
+        const appWindow = getCurrentWindow();
+        const currentSize = await appWindow.outerSize();
+        const scaleFactor = await appWindow.scaleFactor();
+        const currentLogicalWidth = currentSize.width / scaleFactor;
+        const targetWidth = isOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
+        if (Math.abs(currentLogicalWidth - targetWidth) > 10) {
+          const currentLogicalHeight = currentSize.height / scaleFactor;
+          await appWindow.setSize(new LogicalSize(targetWidth, currentLogicalHeight));
+        }
+      } catch (e) {
+        console.error("Failed to resize window:", e);
+      }
+    };
+    resize();
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) selectTask(null);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isOpen, selectTask]);
+
+  if (!task) return null;
+
+  const handleTitleBlur = () => {
+    if (title !== task.title) {
+      updateTask(task.id, { title });
+    }
   };
 
   const handleSetDate = (date: Date | undefined) => {
@@ -35,141 +67,126 @@ export function TaskDetailPanel({ task, isOpen, onClose }: TaskDetailPanelProps)
 
   const handleDelete = () => {
     deleteTask(task.id);
-    onClose();
+    selectTask(null);
   };
 
   const formatDateDisplay = (dateStr: string) => {
     const date = new Date(dateStr + "T00:00:00");
     const now = new Date();
-    if (isSameYear(date, now)) {
-      return format(date, "MMM d");
-    }
-    return format(date, "MMM d, yyyy");
+    return isSameYear(date, now) ? format(date, "MMM d") : format(date, "MMM d, yyyy");
   };
 
+  const isDone = task.status === "done";
+
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] max-h-[85vh] w-[90vw] max-w-[500px] translate-x-[-50%] translate-y-[-50%] rounded-2xl bg-[#1C1C1E] border border-white/10 shadow-2xl z-50 flex flex-col focus:outline-none">
-          {/* Header */}
-          <div className="flex items-center justify-between p-5 pb-2 shrink-0">
-            <Dialog.Title className="text-xs font-bold text-white/40 uppercase tracking-widest">
-              Details
-            </Dialog.Title>
-            <button
-              onClick={onClose}
-              className="text-white/40 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+    <div
+      className="flex flex-col h-full w-[320px] shrink-0"
+      style={{
+        backgroundColor: "var(--bg-surface)",
+        borderLeft: "1px solid var(--border)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 h-[28px] shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+          Detail
+        </span>
+        <button
+          onClick={() => selectTask(null)}
+          className="p-1 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto px-5 py-2 space-y-6">
-            {/* Title */}
-            <input
-              value={title}
-              onChange={handleTitleChange}
-              className="w-full bg-transparent text-2xl font-bold text-white placeholder:text-white/20 focus:outline-none leading-tight"
-              placeholder="Title"
-            />
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        {/* Title */}
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={handleTitleBlur}
+          className="w-full bg-transparent text-lg font-light focus:outline-none"
+          style={{ color: "var(--text-primary)" }}
+          placeholder="Title"
+        />
 
-            {/* Notes */}
-            <div className="min-h-[120px] bg-[#2C2C2E] rounded-xl border border-white/5 focus-within:border-white/20 transition-colors overflow-hidden">
-              <Editor taskId={task.id} />
-            </div>
+        {/* Status + Date row */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => updateTask(task.id, { status: isDone ? "todo" : "done" })}
+            className={cn(
+              "text-xs px-2.5 py-1 rounded-full transition-colors",
+              isDone
+                ? "bg-[var(--done)]/15 text-[var(--done)]"
+                : "text-[var(--text-secondary)]"
+            )}
+            style={!isDone ? { backgroundColor: "rgba(255,255,255,0.06)" } : undefined}
+          >
+            {isDone ? "Done" : "Todo"}
+          </button>
 
-            {/* Properties Group */}
-            <div className="bg-[#2C2C2E] rounded-xl border border-white/5 overflow-hidden divide-y divide-white/5">
-              {/* Date */}
-              <div className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors group">
-                <div className="flex items-center text-sm font-medium text-white">
-                  <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center mr-3 text-red-400 group-hover:scale-110 transition-transform">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  Date
-                </div>
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger asChild>
-                    <button
-                      className={cn(
-                        "text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors",
-                        task.due_date ? "text-blue-400 bg-blue-400/10" : "text-white/30"
-                      )}
-                    >
-                      {task.due_date ? formatDateDisplay(task.due_date) : "Add Date"}
-                    </button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Content className="bg-[#2C2C2E] border border-white/10 rounded-xl p-1.5 shadow-2xl z-[60] min-w-[200px] text-white">
-                      <DropdownMenu.Item
-                        onSelect={() => handleSetDate(startOfToday())}
-                        className="flex justify-between items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg cursor-pointer outline-none"
-                      >
-                        <span>Today</span>
-                        <span className="text-white/30 text-xs">{format(startOfToday(), "EEE")}</span>
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        onSelect={() => handleSetDate(startOfTomorrow())}
-                        className="flex justify-between items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg cursor-pointer outline-none"
-                      >
-                        <span>Tomorrow</span>
-                        <span className="text-white/30 text-xs">{format(startOfTomorrow(), "EEE")}</span>
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        onSelect={() => handleSetDate(addDays(new Date(), 7))}
-                        className="flex justify-between items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg cursor-pointer outline-none"
-                      >
-                        <span>Next Week</span>
-                        <span className="text-white/30 text-xs">{format(addDays(new Date(), 7), "MMM d")}</span>
-                      </DropdownMenu.Item>
-                      {task.due_date && (
-                        <>
-                          <DropdownMenu.Separator className="h-px bg-white/10 my-1" />
-                          <DropdownMenu.Item
-                            onSelect={() => handleSetDate(undefined)}
-                            className="flex justify-between items-center px-3 py-2 text-sm hover:bg-red-500/20 text-red-400 rounded-lg cursor-pointer outline-none"
-                          >
-                            <span>Clear Date</span>
-                          </DropdownMenu.Item>
-                        </>
-                      )}
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Root>
-              </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                className="text-xs px-2.5 py-1 rounded-full transition-colors"
+                style={{
+                  backgroundColor: task.due_date ? "var(--accent-dim)" : "rgba(255,255,255,0.06)",
+                  color: task.due_date ? "var(--accent)" : "var(--text-secondary)",
+                }}
+              >
+                {task.due_date ? formatDateDisplay(task.due_date) : "Add date"}
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="rounded-lg p-1 shadow-2xl z-50 min-w-[180px]"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <DropdownMenu.Item onSelect={() => handleSetDate(startOfToday())} className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]">Today</DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => handleSetDate(startOfTomorrow())} className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]">Tomorrow</DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => handleSetDate(addDays(new Date(), 7))} className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]">Next Week</DropdownMenu.Item>
+                {task.due_date && (
+                  <>
+                    <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
+                    <DropdownMenu.Item onSelect={() => handleSetDate(undefined)} className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]" style={{ color: "var(--danger)" }}>Clear</DropdownMenu.Item>
+                  </>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
 
-              {/* Priority */}
-              <div className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors group">
-                <div className="flex items-center text-sm font-medium text-white">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center mr-3 text-orange-400 group-hover:scale-110 transition-transform">
-                    <Flag className="w-4 h-4" />
-                  </div>
-                  Priority
-                </div>
-                <span className="text-sm text-white/30 px-3 py-1.5">
-                  {task.title.startsWith("!!! ") ? "High" : task.title.startsWith("!! ") ? "Medium" : task.title.startsWith("! ") ? "Low" : "None"}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* Divider */}
+        <div className="h-px" style={{ backgroundColor: "var(--border)" }} />
 
-          {/* Footer */}
-          <div className="p-4 border-t border-white/5 bg-[#1C1C1E] flex justify-between items-center shrink-0 rounded-b-2xl">
-            <div className="text-[10px] text-white/20 font-mono">
-              ID: {task.id.slice(0, 8)}
-            </div>
-            <button
-              onClick={handleDelete}
-              className="text-red-400 hover:text-red-300 text-xs font-medium flex items-center transition-colors hover:bg-red-500/10 px-3 py-1.5 rounded-lg"
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-              Delete
-            </button>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        {/* Notes (TipTap Editor) */}
+        <div className="flex-1 min-h-[120px]">
+          <Editor taskId={task.id} />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="px-4 py-2 flex justify-between items-center shrink-0"
+        style={{ borderTop: "1px solid var(--border)" }}
+      >
+        <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
+          {task.id.slice(0, 8)}
+        </span>
+        <button
+          onClick={handleDelete}
+          className="text-xs flex items-center gap-1 px-2 py-1 rounded-md transition-colors hover:bg-[var(--danger)]/10"
+          style={{ color: "var(--danger)" }}
+        >
+          <Trash2 className="w-3 h-3" />
+          Delete
+        </button>
+      </div>
+    </div>
   );
 }
