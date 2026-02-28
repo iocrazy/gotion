@@ -38,6 +38,10 @@ impl CacheDb {
                 action TEXT NOT NULL,
                 payload TEXT NOT NULL,
                 created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             );"
         ).map_err(|e| e.to_string())?;
 
@@ -125,6 +129,23 @@ impl CacheDb {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute("DELETE FROM offline_queue WHERE id <= ?1", params![up_to_id])
             .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare("SELECT value FROM settings WHERE key = ?1")
+            .map_err(|e| e.to_string())?;
+        let result = stmt.query_row(params![key], |row| row.get(0)).ok();
+        Ok(result)
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params![key, value],
+        ).map_err(|e| e.to_string())?;
         Ok(())
     }
 }

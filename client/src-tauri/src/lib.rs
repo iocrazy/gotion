@@ -94,6 +94,23 @@ async fn clear_offline_queue(state: tauri::State<'_, CacheDb>, up_to_id: i64) ->
     state.clear_offline_queue(up_to_id)
 }
 
+#[tauri::command]
+async fn get_settings(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
+    let server_url = state.get_setting("server_url")?
+        .unwrap_or_else(|| "http://localhost:3001".to_string());
+    Ok(serde_json::json!({ "server_url": server_url }).to_string())
+}
+
+#[tauri::command]
+async fn save_settings(state: tauri::State<'_, CacheDb>, settings_json: String) -> Result<(), String> {
+    let settings: serde_json::Value = serde_json::from_str(&settings_json)
+        .map_err(|e| e.to_string())?;
+    if let Some(url) = settings["server_url"].as_str() {
+        state.set_setting("server_url", url)?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -119,6 +136,8 @@ pub fn run() {
       queue_offline_op,
       get_offline_queue,
       clear_offline_queue,
+      get_settings,
+      save_settings,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
