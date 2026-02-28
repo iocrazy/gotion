@@ -184,3 +184,40 @@ async fn set_notion_id(pool: &PgPool, task_id: Uuid, notion_id: &str) -> Result<
 struct FindRow {
     id: Uuid,
 }
+
+/// Download a Notion image URL and cache it locally.
+/// Returns the local API path (e.g., "/api/images/{id}") or None on failure.
+#[allow(dead_code)]
+async fn cache_notion_image(notion_url: &str, pool: &PgPool) -> Option<String> {
+    let client = reqwest::Client::new();
+    let response = client.get(notion_url).send().await.ok()?;
+    let bytes = response.bytes().await.ok()?;
+
+    let id = Uuid::new_v4();
+    let ext = if notion_url.contains(".png") {
+        "png"
+    } else if notion_url.contains(".gif") {
+        "gif"
+    } else if notion_url.contains(".webp") {
+        "webp"
+    } else {
+        "jpg"
+    };
+    let filename = format!("{}.{}", id, ext);
+
+    let uploads_dir = std::path::Path::new("./uploads");
+    tokio::fs::create_dir_all(uploads_dir).await.ok()?;
+    tokio::fs::write(uploads_dir.join(&filename), &bytes).await.ok()?;
+
+    sqlx::query(
+        "INSERT INTO images (id, notion_url, stored_path, uploaded_at) VALUES ($1, $2, $3, now())",
+    )
+    .bind(id)
+    .bind(notion_url)
+    .bind(&filename)
+    .execute(pool)
+    .await
+    .ok()?;
+
+    Some(format!("/api/images/{}", id))
+}
