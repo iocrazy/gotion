@@ -1,5 +1,6 @@
-[build]
-target = "x86_64-pc-windows-gnu"
-
-[target.x86_64-pc-windows-gnu]
-rustflags = ["-Z", "unstable-options", "-C", "link-self-contained=+linker,+mingw"]
+# Windows cross-compilation (uncomment when building on Windows/MSYS2)
+# [build]
+# target = "x86_64-pc-windows-gnu"
+#
+# [target.x86_64-pc-windows-gnu]
+# rustflags = ["-Z", "unstable-options", "-C", "link-self-contained=+linker,+mingw"]
