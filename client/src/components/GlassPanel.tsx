@@ -19,7 +19,7 @@ export function AppShell({ className, children, ...props }: AppShellProps) {
         "shadow-[0_0_0_1px_var(--border),0_25px_50px_-12px_rgba(0,0,0,0.5)]",
         className
       )}
-      style={{ backgroundColor: bgColor }}
+      style={{ backgroundColor: bgColor, isolation: "isolate" }}
       {...props}
     >
       {children}
