@@ -34,56 +34,75 @@ export function AddTask() {
   };
 
   return (
-    <div className="p-4 border-t border-white/10 bg-white/5">
+    <div
+      className="px-3 py-2"
+      style={{
+        backgroundColor: "var(--bg-surface)",
+        borderTop: "1px solid var(--border)",
+      }}
+    >
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative flex items-center bg-black/20 border border-white/10 rounded-xl focus-within:bg-black/40 focus-within:border-white/30 transition-all">
+        <div className="relative flex items-center">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New Task..."
-            className="w-full bg-transparent py-3 pl-4 pr-24 text-sm text-white placeholder:text-white/30 focus:outline-none"
+            placeholder="+ New Task..."
+            className="w-full bg-transparent py-2 pl-1 pr-20 text-sm font-light tracking-wide focus:outline-none"
+            style={{
+              color: "var(--text-primary)",
+            }}
           />
 
           {/* Inline Actions */}
-          <div className="absolute right-2 flex items-center space-x-1">
+          <div className="absolute right-0 flex items-center gap-0.5">
             {/* Date Picker */}
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    "p-1.5 rounded-lg hover:bg-white/10 transition-colors",
-                    dueDate ? "text-blue-400" : "text-white/40 hover:text-white"
+                    "p-1.5 rounded-md transition-colors",
+                    dueDate
+                      ? "text-[var(--accent)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                   )}
                 >
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-3.5 h-3.5" />
                 </button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
-                <DropdownMenu.Content className="bg-zinc-800 border border-white/10 rounded-lg p-1 shadow-xl z-50 min-w-[150px] text-white">
+                <DropdownMenu.Content
+                  className="rounded-lg p-1 shadow-2xl z-50 min-w-[150px]"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                  }}
+                >
                   <DropdownMenu.Item
                     onSelect={() => setDueDate(startOfToday())}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
+                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
                   >
                     Today
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
                     onSelect={() => setDueDate(startOfTomorrow())}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
+                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
                   >
                     Tomorrow
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
                     onSelect={() => setDueDate(addDays(new Date(), 7))}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
+                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
                   >
                     Next Week
                   </DropdownMenu.Item>
-                  <DropdownMenu.Separator className="h-px bg-white/10 my-1" />
+                  <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
                   <DropdownMenu.Item
                     onSelect={() => setDueDate(undefined)}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs text-red-400 outline-none"
+                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
+                    style={{ color: "var(--danger)" }}
                   >
                     Clear
                   </DropdownMenu.Item>
@@ -97,41 +116,33 @@ export function AddTask() {
                 <button
                   type="button"
                   className={cn(
-                    "p-1.5 rounded-lg hover:bg-white/10 transition-colors",
+                    "p-1.5 rounded-md transition-colors",
                     priority !== "none"
-                      ? "text-orange-400"
-                      : "text-white/40 hover:text-white"
+                      ? "text-[var(--warn)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                   )}
                 >
-                  <Flag className="w-4 h-4" />
+                  <Flag className="w-3.5 h-3.5" />
                 </button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
-                <DropdownMenu.Content className="bg-zinc-800 border border-white/10 rounded-lg p-1 shadow-xl z-50 min-w-[150px] text-white">
-                  <DropdownMenu.Item
-                    onSelect={() => setPriority("none")}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
-                  >
-                    None
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onSelect={() => setPriority("low")}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
-                  >
-                    Low
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onSelect={() => setPriority("medium")}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
-                  >
-                    Medium
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onSelect={() => setPriority("high")}
-                    className="p-2 hover:bg-white/10 rounded cursor-pointer text-xs outline-none"
-                  >
-                    High
-                  </DropdownMenu.Item>
+                <DropdownMenu.Content
+                  className="rounded-lg p-1 shadow-2xl z-50 min-w-[150px]"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {(["none", "low", "medium", "high"] as const).map((p) => (
+                    <DropdownMenu.Item
+                      key={p}
+                      onSelect={() => setPriority(p)}
+                      className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
+                    >
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </DropdownMenu.Item>
+                  ))}
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
