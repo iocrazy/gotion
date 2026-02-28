@@ -10,7 +10,7 @@ interface SettingsState {
   setBgOpacity: (opacity: number) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
+export const useSettingsStore = create<SettingsState>((set) => ({
   serverUrl: "http://localhost:3001",
   bgOpacity: 1.0,
   loaded: false,
