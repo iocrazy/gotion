@@ -42,13 +42,19 @@ export function AddTask() {
       }}
     >
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative flex items-center">
+        <div
+          className="relative flex items-center rounded-lg px-3"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.2)",
+            border: "1px solid var(--border)",
+          }}
+        >
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="+ New Task..."
-            className="w-full bg-transparent py-2 pl-1 pr-20 text-sm font-light tracking-wide focus:outline-none"
+            placeholder="New Task..."
+            className="w-full bg-transparent py-2.5 pr-16 text-sm font-light tracking-wide focus:outline-none"
             style={{
               color: "var(--text-primary)",
             }}

@@ -12,7 +12,7 @@ export type GroupBy = "status" | "date" | "priority";
 export function TitleBar() {
   const [pinned, setPinned] = useState(false);
   const { groupBy, setGroupBy } = useTaskStore();
-  const { serverUrl, setServerUrl } = useSettingsStore();
+  const { serverUrl, setServerUrl, bgOpacity, setBgOpacity } = useSettingsStore();
   const [serverInput, setServerInput] = useState(serverUrl);
 
   useEffect(() => {
@@ -81,13 +81,13 @@ export function TitleBar() {
 
       {/* Right controls */}
       <div className="flex items-center gap-0.5">
-        {/* Pin icon */}
+        {/* Pin icon — red when active */}
         <button
           onClick={togglePin}
           className={cn(
             "p-1.5 rounded-md transition-colors",
             pinned
-              ? "text-[var(--accent)]"
+              ? "text-[var(--danger)]"
               : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           )}
           title={pinned ? "Unpin" : "Pin on top"}
@@ -95,7 +95,7 @@ export function TitleBar() {
           {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
         </button>
 
-        {/* Settings (includes Group By + Server URL) */}
+        {/* Settings (includes Group By + Opacity + Server URL) */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button
@@ -134,6 +134,34 @@ export function TitleBar() {
                   {option.charAt(0).toUpperCase() + option.slice(1)}
                 </DropdownMenu.Item>
               ))}
+
+              <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
+
+              {/* Background Opacity */}
+              <div className="px-2 py-1 text-[10px] uppercase font-medium" style={{ color: "var(--text-muted)" }}>
+                Opacity
+              </div>
+              <div
+                className="px-2 py-2"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="range"
+                  min="0.3"
+                  max="1"
+                  step="0.05"
+                  value={bgOpacity}
+                  onChange={(e) => setBgOpacity(parseFloat(e.target.value))}
+                  className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, var(--accent) ${((bgOpacity - 0.3) / 0.7) * 100}%, rgba(255,255,255,0.1) ${((bgOpacity - 0.3) / 0.7) * 100}%)`,
+                  }}
+                />
+                <div className="flex justify-between mt-1">
+                  <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>Transparent</span>
+                  <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>{Math.round(bgOpacity * 100)}%</span>
+                </div>
+              </div>
 
               <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
 

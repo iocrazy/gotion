@@ -98,7 +98,10 @@ async fn clear_offline_queue(state: tauri::State<'_, CacheDb>, up_to_id: i64) ->
 async fn get_settings(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
     let server_url = state.get_setting("server_url")?
         .unwrap_or_else(|| "http://localhost:3001".to_string());
-    Ok(serde_json::json!({ "server_url": server_url }).to_string())
+    let bg_opacity = state.get_setting("bg_opacity")?
+        .and_then(|s| s.parse::<f64>().ok())
+        .unwrap_or(1.0);
+    Ok(serde_json::json!({ "server_url": server_url, "bg_opacity": bg_opacity }).to_string())
 }
 
 #[tauri::command]
@@ -107,6 +110,9 @@ async fn save_settings(state: tauri::State<'_, CacheDb>, settings_json: String) 
         .map_err(|e| e.to_string())?;
     if let Some(url) = settings["server_url"].as_str() {
         state.set_setting("server_url", url)?;
+    }
+    if let Some(opacity) = settings["bg_opacity"].as_f64() {
+        state.set_setting("bg_opacity", &opacity.to_string())?;
     }
     Ok(())
 }
