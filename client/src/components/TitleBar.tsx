@@ -6,6 +6,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "../lib/utils";
 import { useTaskStore } from "../stores/taskStore";
 import { useThemeStore } from "../stores/themeStore";
+import { useSettingsStore } from "../stores/settingsStore";
 
 export type GroupBy = "status" | "date" | "priority";
 
@@ -14,6 +15,8 @@ export function TitleBar() {
   const [syncing, setSyncing] = useState(false);
   const { groupBy, setGroupBy, fetchTasks } = useTaskStore();
   const { theme, toggleTheme, glassOpacity, setGlassOpacity } = useThemeStore();
+  const { serverUrl, setServerUrl } = useSettingsStore();
+  const [serverInput, setServerInput] = useState(serverUrl);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -181,6 +184,24 @@ export function TitleBar() {
                   </div>
                 </>
               )}
+              <DropdownMenu.Separator className="h-px bg-white/10 my-1" />
+              <div className="px-2 py-1 text-[10px] uppercase text-white/40 font-bold">
+                Server
+              </div>
+              <div
+                className="px-2 py-2"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="text"
+                  value={serverInput}
+                  onChange={(e) => setServerInput(e.target.value)}
+                  onBlur={() => setServerUrl(serverInput)}
+                  onKeyDown={(e) => { if (e.key === "Enter") setServerUrl(serverInput); }}
+                  className="w-full bg-black/30 text-xs text-white px-2 py-1.5 rounded border border-white/10 focus:border-white/30 focus:outline-none"
+                  placeholder="http://localhost:3001"
+                />
+              </div>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
