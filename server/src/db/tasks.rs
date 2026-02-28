@@ -16,6 +16,9 @@ struct TaskRow {
     title_updated_at: DateTime<Utc>,
     status_updated_at: DateTime<Utc>,
     due_date_updated_at: Option<DateTime<Utc>>,
+    category_id: Option<Uuid>,
+    parent_id: Option<Uuid>,
+    sort_order: i32,
 }
 
 fn parse_status(s: &str) -> TaskStatus {
@@ -45,6 +48,9 @@ impl From<TaskRow> for Task {
             title_updated_at: row.title_updated_at,
             status_updated_at: row.status_updated_at,
             due_date_updated_at: row.due_date_updated_at,
+            category_id: row.category_id,
+            parent_id: row.parent_id,
+            sort_order: row.sort_order,
         }
     }
 }
@@ -59,9 +65,10 @@ pub async fn list_tasks(
             let status_str = status_to_str(status);
             sqlx::query_as::<_, TaskRow>(
                 "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
-                 title_updated_at, status_updated_at, due_date_updated_at \
+                 title_updated_at, status_updated_at, due_date_updated_at, \
+                 category_id, parent_id, sort_order \
                  FROM tasks WHERE status = $1 \
-                 ORDER BY due_date ASC NULLS LAST, created_at DESC",
+                 ORDER BY sort_order ASC, due_date ASC NULLS LAST, created_at DESC",
             )
             .bind(status_str)
             .fetch_all(pool)
@@ -70,9 +77,10 @@ pub async fn list_tasks(
         None => {
             sqlx::query_as::<_, TaskRow>(
                 "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
-                 title_updated_at, status_updated_at, due_date_updated_at \
+                 title_updated_at, status_updated_at, due_date_updated_at, \
+                 category_id, parent_id, sort_order \
                  FROM tasks \
-                 ORDER BY due_date ASC NULLS LAST, created_at DESC",
+                 ORDER BY sort_order ASC, due_date ASC NULLS LAST, created_at DESC",
             )
             .fetch_all(pool)
             .await?
@@ -86,7 +94,8 @@ pub async fn list_tasks(
 pub async fn get_task(pool: &PgPool, id: Uuid) -> Result<Option<Task>, sqlx::Error> {
     let row = sqlx::query_as::<_, TaskRow>(
         "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
-         title_updated_at, status_updated_at, due_date_updated_at \
+         title_updated_at, status_updated_at, due_date_updated_at, \
+         category_id, parent_id, sort_order \
          FROM tasks WHERE id = $1",
     )
     .bind(id)
@@ -102,21 +111,26 @@ pub async fn create_task(
     title: String,
     status: Option<TaskStatus>,
     due_date: Option<NaiveDate>,
+    category_id: Option<Uuid>,
+    parent_id: Option<Uuid>,
 ) -> Result<Task, sqlx::Error> {
     let now = Utc::now();
     let status_str = status_to_str(&status.unwrap_or(TaskStatus::Todo));
     let due_date_updated_at: Option<DateTime<Utc>> = due_date.map(|_| now);
 
     let row = sqlx::query_as::<_, TaskRow>(
-        "INSERT INTO tasks (title, status, due_date, created_at, updated_at, \
-         title_updated_at, status_updated_at, due_date_updated_at) \
-         VALUES ($1, $2, $3, $4, $4, $4, $4, $5) \
+        "INSERT INTO tasks (title, status, due_date, category_id, parent_id, \
+         created_at, updated_at, title_updated_at, status_updated_at, due_date_updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $6, $6, $6, $7) \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
-         title_updated_at, status_updated_at, due_date_updated_at",
+         title_updated_at, status_updated_at, due_date_updated_at, \
+         category_id, parent_id, sort_order",
     )
     .bind(&title)
     .bind(status_str)
     .bind(due_date)
+    .bind(category_id)
+    .bind(parent_id)
     .bind(now)
     .bind(due_date_updated_at)
     .fetch_one(pool)
@@ -132,12 +146,20 @@ pub async fn create_task(
 /// - `None` means do not touch the due date field
 /// - `Some(None)` means clear the due date
 /// - `Some(Some(date))` means set the due date to the given value
+///
+/// `category_id` and `parent_id` use `Option<Option<Uuid>>`:
+/// - `None` means do not touch the field
+/// - `Some(None)` means clear the field (set to NULL)
+/// - `Some(Some(uuid))` means set the field to the given value
 pub async fn update_task(
     pool: &PgPool,
     id: Uuid,
     title: Option<String>,
     status: Option<TaskStatus>,
     due_date: Option<Option<NaiveDate>>,
+    category_id: Option<Option<Uuid>>,
+    parent_id: Option<Option<Uuid>>,
+    sort_order: Option<i32>,
 ) -> Result<Option<Task>, sqlx::Error> {
     // First fetch the current task to merge fields
     let existing = match get_task(pool, id).await? {
@@ -155,6 +177,17 @@ pub async fn update_task(
     } else {
         existing.due_date
     };
+    let new_category_id = if let Some(cid) = category_id {
+        cid
+    } else {
+        existing.category_id
+    };
+    let new_parent_id = if let Some(pid) = parent_id {
+        pid
+    } else {
+        existing.parent_id
+    };
+    let new_sort_order = sort_order.unwrap_or(existing.sort_order);
 
     let new_title_updated_at = if title.is_some() {
         now
@@ -174,10 +207,12 @@ pub async fn update_task(
 
     let row = sqlx::query_as::<_, TaskRow>(
         "UPDATE tasks SET title = $1, status = $2, due_date = $3, updated_at = $4, \
-         title_updated_at = $5, status_updated_at = $6, due_date_updated_at = $7 \
-         WHERE id = $8 \
+         title_updated_at = $5, status_updated_at = $6, due_date_updated_at = $7, \
+         category_id = $8, parent_id = $9, sort_order = $10 \
+         WHERE id = $11 \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
-         title_updated_at, status_updated_at, due_date_updated_at",
+         title_updated_at, status_updated_at, due_date_updated_at, \
+         category_id, parent_id, sort_order",
     )
     .bind(new_title)
     .bind(new_status_str)
@@ -186,6 +221,9 @@ pub async fn update_task(
     .bind(new_title_updated_at)
     .bind(new_status_updated_at)
     .bind(new_due_date_updated_at)
+    .bind(new_category_id)
+    .bind(new_parent_id)
+    .bind(new_sort_order)
     .bind(id)
     .fetch_optional(pool)
     .await?;

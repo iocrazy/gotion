@@ -86,6 +86,9 @@ pub async fn start_polling(pool: PgPool, client: Arc<NotionClient>, broadcast: W
                                     Some(merge.title.clone()),
                                     Some(merge.status.clone()),
                                     Some(merge.due_date),
+                                    None,
+                                    None,
+                                    None,
                                 )
                                 .await
                                 {
@@ -134,6 +137,8 @@ pub async fn start_polling(pool: PgPool, client: Arc<NotionClient>, broadcast: W
                                 notion_title.to_string(),
                                 Some(status),
                                 notion_due_date,
+                                None,
+                                None,
                             )
                             .await
                             {

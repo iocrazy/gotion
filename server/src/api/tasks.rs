@@ -32,9 +32,16 @@ async fn create_task(
     State(state): State<AppState>,
     Json(req): Json<CreateTaskRequest>,
 ) -> Result<(StatusCode, Json<Task>), StatusCode> {
-    let task = db::tasks::create_task(&state.pool, req.title, req.status, req.due_date)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let task = db::tasks::create_task(
+        &state.pool,
+        req.title,
+        req.status,
+        req.due_date,
+        req.category_id,
+        req.parent_id,
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     state.broadcast.send(WsMessage::TaskCreated(task.clone()));
 
@@ -67,9 +74,18 @@ async fn update_task(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateTaskRequest>,
 ) -> Result<Json<Task>, StatusCode> {
-    let task = db::tasks::update_task(&state.pool, id, req.title, req.status, req.due_date.map(Some))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let task = db::tasks::update_task(
+        &state.pool,
+        id,
+        req.title,
+        req.status,
+        req.due_date.map(Some),
+        req.category_id.map(Some),
+        req.parent_id.map(Some),
+        req.sort_order,
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match task {
         Some(t) => {
