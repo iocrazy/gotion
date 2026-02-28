@@ -4,11 +4,35 @@ import { TaskItem } from "./TaskItem";
 import type { Task } from "../lib/api";
 
 export function TaskList() {
-  const { tasks, loading, fetchTasks, groupBy } = useTaskStore();
+  const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // Filter out sub-tasks and apply category filter
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(
+      (t) => !t.parent_id && (!selectedCategoryId || t.category_id === selectedCategoryId)
+    );
+  }, [tasks, selectedCategoryId]);
+
+  // Compute sub-task counts per parent task
+  const subTaskCounts = useMemo(() => {
+    const counts: Record<string, { done: number; total: number }> = {};
+    tasks.forEach((t) => {
+      if (t.parent_id) {
+        if (!counts[t.parent_id]) {
+          counts[t.parent_id] = { done: 0, total: 0 };
+        }
+        counts[t.parent_id].total += 1;
+        if (t.status === "done") {
+          counts[t.parent_id].done += 1;
+        }
+      }
+    });
+    return counts;
+  }, [tasks]);
 
   const groupedTasks = useMemo(() => {
     const groups: Record<string, Task[]> = {};
@@ -27,7 +51,7 @@ export function TaskList() {
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
 
-      tasks.forEach((task) => {
+      filteredTasks.forEach((task) => {
         if (!task.due_date) {
           groups["No Date"].push(task);
           return;
@@ -42,7 +66,7 @@ export function TaskList() {
       groups["Other"] = [];
       groups["Complete"] = [];
 
-      tasks.forEach((task) => {
+      filteredTasks.forEach((task) => {
         if (task.status === "done") {
           groups["Complete"].push(task);
         } else {
@@ -55,7 +79,7 @@ export function TaskList() {
       groups["Low"] = [];
       groups["None"] = [];
 
-      tasks.forEach((task) => {
+      filteredTasks.forEach((task) => {
         const title = task.title;
         if (title.startsWith("!!! ")) groups["High"].push(task);
         else if (title.startsWith("!! ")) groups["Medium"].push(task);
@@ -65,7 +89,7 @@ export function TaskList() {
     }
 
     return groups;
-  }, [tasks, groupBy]);
+  }, [filteredTasks, groupBy]);
 
   if (loading && tasks.length === 0) {
     return (
@@ -75,7 +99,7 @@ export function TaskList() {
     );
   }
 
-  if (tasks.length === 0) {
+  if (filteredTasks.length === 0) {
     return (
       <div className="text-center py-10 text-xs" style={{ color: "var(--text-muted)" }}>
         No tasks yet. Add one below!
@@ -100,7 +124,7 @@ export function TaskList() {
             </div>
             <div>
               {groupTasks.map((task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem key={task.id} task={task} subTaskCount={subTaskCounts[task.id]} />
               ))}
             </div>
           </div>
