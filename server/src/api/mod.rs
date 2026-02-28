@@ -1,4 +1,5 @@
 pub mod blocks;
+pub mod categories;
 pub mod images;
 pub mod tasks;
 
@@ -20,5 +21,6 @@ pub fn router(state: AppState) -> Router {
         .merge(tasks::router())
         .merge(blocks::router())
         .merge(images::router())
+        .merge(categories::router())
         .with_state(state)
 }
