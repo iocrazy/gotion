@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
-import { ListFilter, RefreshCw, Loader2, Settings as SettingsIcon, Pin, PinOff } from "lucide-react";
+import { Pin, PinOff, Settings as SettingsIcon } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "../lib/utils";
 import { useTaskStore } from "../stores/taskStore";
@@ -11,8 +11,7 @@ export type GroupBy = "status" | "date" | "priority";
 
 export function TitleBar() {
   const [pinned, setPinned] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const { groupBy, setGroupBy, fetchTasks } = useTaskStore();
+  const { groupBy, setGroupBy } = useTaskStore();
   const { serverUrl, setServerUrl } = useSettingsStore();
   const [serverInput, setServerInput] = useState(serverUrl);
 
@@ -43,34 +42,29 @@ export function TitleBar() {
     await appWindow.close();
   };
 
-  const handleSync = async () => {
-    setSyncing(true);
-    await fetchTasks();
-    setTimeout(() => setSyncing(false), 600);
-  };
-
   return (
     <div
       data-tauri-drag-region
-      className="flex items-center justify-between px-4 py-3 select-none cursor-move border-b border-white/10 bg-white/5"
+      className="flex items-center justify-between px-4 h-[28px] select-none cursor-move"
+      style={{ borderBottom: "1px solid var(--border)" }}
     >
       {/* Traffic lights */}
-      <div data-tauri-drag-region className="flex items-center space-x-2">
+      <div data-tauri-drag-region className="flex items-center gap-2">
         <button
           onClick={handleClose}
-          className="w-3 h-3 rounded-full bg-red-500/50 hover:bg-red-500 transition-colors"
-          title="Close"
+          className="w-3 h-3 rounded-full bg-[#FF5F57]/60 hover:bg-[#FF5F57] transition-colors"
         />
         <button
           onClick={handleMinimize}
-          className="w-3 h-3 rounded-full bg-yellow-500/50 hover:bg-yellow-500 transition-colors"
-          title="Minimize"
+          className="w-3 h-3 rounded-full bg-[#FEBC2E]/60 hover:bg-[#FEBC2E] transition-colors"
         />
         <button
           onClick={togglePin}
           className={cn(
             "w-3 h-3 rounded-full transition-colors",
-            pinned ? "bg-green-500 hover:bg-green-400" : "bg-green-500/50 hover:bg-green-500"
+            pinned
+              ? "bg-[#28C840] hover:bg-[#28C840]/80"
+              : "bg-[#28C840]/60 hover:bg-[#28C840]"
           )}
           title={pinned ? "Unpin" : "Pin on top"}
         />
@@ -79,89 +73,72 @@ export function TitleBar() {
       {/* Title */}
       <h1
         data-tauri-drag-region
-        className="text-sm font-semibold tracking-widest uppercase text-white/50"
+        className="text-xs font-medium tracking-[0.2em] uppercase"
+        style={{ color: "var(--text-muted)" }}
       >
         Gotion
       </h1>
 
       {/* Right controls */}
-      <div className="flex items-center space-x-1">
-        {/* Pin on Top */}
+      <div className="flex items-center gap-0.5">
+        {/* Pin icon */}
         <button
           onClick={togglePin}
           className={cn(
-            "p-2 rounded-full hover:bg-white/10 transition-colors",
-            pinned ? "text-blue-400" : "text-white/60 hover:text-white"
+            "p-1.5 rounded-md transition-colors",
+            pinned
+              ? "text-[var(--accent)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           )}
           title={pinned ? "Unpin" : "Pin on top"}
         >
-          {pinned ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
+          {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
         </button>
 
-        {/* Group By */}
+        {/* Settings (includes Group By + Server URL) */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button
-              className={cn(
-                "p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white",
-                groupBy !== "date" && "text-blue-400"
-              )}
+              className="p-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             >
-              <ListFilter className="w-4 h-4" />
+              <SettingsIcon className="w-3.5 h-3.5" />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-zinc-800 border border-white/10 rounded-lg p-1 shadow-xl z-50 min-w-[150px] text-white">
-              <div className="px-2 py-1 text-[10px] uppercase text-white/40 font-bold">
+            <DropdownMenu.Content
+              className="rounded-lg p-1 shadow-2xl z-50 min-w-[180px]"
+              style={{
+                backgroundColor: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
+              }}
+              align="end"
+              sideOffset={4}
+            >
+              {/* Group By */}
+              <div className="px-2 py-1 text-[10px] uppercase font-medium" style={{ color: "var(--text-muted)" }}>
                 Group By
               </div>
-              <DropdownMenu.Item
-                onSelect={() => setGroupBy("date")}
-                className="flex items-center px-2 py-1.5 text-xs hover:bg-white/10 rounded cursor-pointer outline-none"
-              >
-                {groupBy === "date" && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2" />}
-                <span className={groupBy !== "date" ? "ml-3.5" : ""}>Date</span>
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                onSelect={() => setGroupBy("status")}
-                className="flex items-center px-2 py-1.5 text-xs hover:bg-white/10 rounded cursor-pointer outline-none"
-              >
-                {groupBy === "status" && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2" />}
-                <span className={groupBy !== "status" ? "ml-3.5" : ""}>Status</span>
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                onSelect={() => setGroupBy("priority")}
-                className="flex items-center px-2 py-1.5 text-xs hover:bg-white/10 rounded cursor-pointer outline-none"
-              >
-                {groupBy === "priority" && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2" />}
-                <span className={groupBy !== "priority" ? "ml-3.5" : ""}>Priority</span>
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+              {(["date", "status", "priority"] as const).map((option) => (
+                <DropdownMenu.Item
+                  key={option}
+                  onSelect={() => setGroupBy(option)}
+                  className="flex items-center px-2 py-1.5 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]"
+                >
+                  <div
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full mr-2",
+                      groupBy === option ? "bg-[var(--accent)]" : "bg-transparent"
+                    )}
+                  />
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </DropdownMenu.Item>
+              ))}
 
-        {/* Sync */}
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className={cn(
-            "p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white",
-            syncing && "animate-spin"
-          )}
-        >
-          {syncing ? <Loader2 className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-        </button>
+              <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
 
-        {/* Settings */}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white">
-              <SettingsIcon className="w-4 h-4" />
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="bg-zinc-800 border border-white/10 rounded-lg p-1 shadow-xl z-50 min-w-[180px] text-white" align="end">
-              <div className="px-2 py-1 text-[10px] uppercase text-white/40 font-bold">
+              {/* Server URL */}
+              <div className="px-2 py-1 text-[10px] uppercase font-medium" style={{ color: "var(--text-muted)" }}>
                 Server
               </div>
               <div
@@ -174,7 +151,12 @@ export function TitleBar() {
                   onChange={(e) => setServerInput(e.target.value)}
                   onBlur={() => setServerUrl(serverInput)}
                   onKeyDown={(e) => { if (e.key === "Enter") setServerUrl(serverInput); }}
-                  className="w-full bg-black/30 text-xs text-white px-2 py-1.5 rounded border border-white/10 focus:border-white/30 focus:outline-none"
+                  className="w-full text-xs px-2 py-1.5 rounded focus:outline-none"
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.3)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                  }}
                   placeholder="http://localhost:3001"
                 />
               </div>
