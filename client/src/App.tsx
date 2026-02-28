@@ -1,10 +1,24 @@
+import { useEffect } from "react";
 import { GlassPanel } from "./components/GlassPanel";
 import { TitleBar } from "./components/TitleBar";
 import { TaskList } from "./components/TaskList";
 import { AddTask } from "./components/AddTask";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useSettingsStore } from "./stores/settingsStore";
 
 function App() {
+  const { loaded, loadSettings } = useSettingsStore();
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  if (!loaded) return null;
+
+  return <AppContent />;
+}
+
+function AppContent() {
   const syncStatus = useWebSocket();
 
   return (

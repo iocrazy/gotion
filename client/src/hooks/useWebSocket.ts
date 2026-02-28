@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useTaskStore } from "../stores/taskStore";
-
-const WS_URL = "ws://localhost:3001/ws";
+import { useSettingsStore } from "../stores/settingsStore";
 
 export type SyncStatus = "connected" | "disconnected" | "connecting";
 
 export function useWebSocket(): SyncStatus {
   const [status, setStatus] = useState<SyncStatus>("connecting");
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { upsertTask, removeTask } = useTaskStore();
+  const serverUrl = useSettingsStore((s) => s.serverUrl);
 
   useEffect(() => {
     let disposed = false;
@@ -20,7 +18,8 @@ export function useWebSocket(): SyncStatus {
       if (disposed) return;
       setStatus("connecting");
 
-      const ws = new WebSocket(WS_URL);
+      const wsUrl = serverUrl.replace(/^http/, "ws") + "/ws";
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -49,7 +48,6 @@ export function useWebSocket(): SyncStatus {
               removeTask(msg.data.id);
               break;
             case "blocks_updated":
-              // Could trigger a reload for the selected task
               break;
             case "pong":
               break;
@@ -80,7 +78,7 @@ export function useWebSocket(): SyncStatus {
         wsRef.current.close();
       }
     };
-  }, [upsertTask, removeTask]);
+  }, [upsertTask, removeTask, serverUrl]);
 
   return status;
 }

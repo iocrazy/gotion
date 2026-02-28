@@ -1,4 +1,8 @@
-const API_BASE = "http://localhost:3001";
+import { useSettingsStore } from "../stores/settingsStore";
+
+function getBaseUrl(): string {
+  return useSettingsStore.getState().serverUrl;
+}
 
 export interface Task {
   id: string;
@@ -38,13 +42,13 @@ export interface UpdateTaskRequest {
 export const api = {
   async listTasks(status?: "todo" | "done"): Promise<Task[]> {
     const params = status ? `?status=${status}` : "";
-    const res = await fetch(`${API_BASE}/api/tasks${params}`);
+    const res = await fetch(`${getBaseUrl()}/api/tasks${params}`);
     if (!res.ok) throw new Error(`Failed to list tasks: ${res.status}`);
     return res.json();
   },
 
   async createTask(data: CreateTaskRequest): Promise<Task> {
-    const res = await fetch(`${API_BASE}/api/tasks`, {
+    const res = await fetch(`${getBaseUrl()}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -54,7 +58,7 @@ export const api = {
   },
 
   async updateTask(id: string, data: UpdateTaskRequest): Promise<Task> {
-    const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -64,7 +68,7 @@ export const api = {
   },
 
   async deleteTask(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${id}`, {
       method: "DELETE",
     });
     if (!res.ok && res.status !== 204)
@@ -72,13 +76,13 @@ export const api = {
   },
 
   async getBlocks(taskId: string): Promise<Block[]> {
-    const res = await fetch(`${API_BASE}/api/tasks/${taskId}/blocks`);
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/blocks`);
     if (!res.ok) throw new Error(`Failed to get blocks: ${res.status}`);
     return res.json();
   },
 
   async updateBlocks(taskId: string, blocks: Block[]): Promise<Block[]> {
-    const res = await fetch(`${API_BASE}/api/tasks/${taskId}/blocks`, {
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/blocks`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(blocks),
