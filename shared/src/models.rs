@@ -21,6 +21,9 @@ pub struct Task {
     pub title_updated_at: DateTime<Utc>,
     pub status_updated_at: DateTime<Utc>,
     pub due_date_updated_at: Option<DateTime<Utc>>,
+    pub category_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
+    pub sort_order: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,6 +38,16 @@ pub struct Block {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Category {
+    pub id: Uuid,
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: i32,
+    pub created_at: DateTime<Utc>,
+}
+
 // API request/response types
 
 #[derive(Debug, Deserialize)]
@@ -42,6 +55,8 @@ pub struct CreateTaskRequest {
     pub title: String,
     pub status: Option<TaskStatus>,
     pub due_date: Option<NaiveDate>,
+    pub category_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,11 +64,30 @@ pub struct UpdateTaskRequest {
     pub title: Option<String>,
     pub status: Option<TaskStatus>,
     pub due_date: Option<NaiveDate>,
+    pub category_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
+    pub sort_order: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TaskListQuery {
     pub status: Option<TaskStatus>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateCategoryRequest {
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: Option<i32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateCategoryRequest {
+    pub name: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: Option<i32>,
 }
 
 // WebSocket message types
@@ -66,6 +100,9 @@ pub enum WsMessage {
     TaskUpdated(Task),
     TaskDeleted { id: Uuid },
     BlocksUpdated { task_id: Uuid, blocks: Vec<Block> },
+    CategoryCreated(Category),
+    CategoryUpdated(Category),
+    CategoryDeleted { id: Uuid },
     Ping,
     Pong,
 }
