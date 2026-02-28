@@ -45,7 +45,7 @@ export function AddTask() {
         <div
           className="relative flex items-center rounded-lg px-3"
           style={{
-            backgroundColor: "rgba(0,0,0,0.2)",
+            backgroundColor: "var(--bg-hover)",
             border: "1px solid var(--border)",
           }}
         >

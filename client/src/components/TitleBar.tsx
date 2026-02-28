@@ -12,7 +12,7 @@ export type GroupBy = "status" | "date" | "priority";
 export function TitleBar() {
   const [pinned, setPinned] = useState(false);
   const { groupBy, setGroupBy } = useTaskStore();
-  const { serverUrl, setServerUrl, bgOpacity, setBgOpacity } = useSettingsStore();
+  const { serverUrl, setServerUrl, bgOpacity, setBgOpacity, theme, setTheme } = useSettingsStore();
   const [serverInput, setServerInput] = useState(serverUrl);
 
   useEffect(() => {
@@ -137,6 +137,23 @@ export function TitleBar() {
 
               <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
 
+              {/* Theme */}
+              <div className="px-2 py-1 text-[10px] uppercase font-medium" style={{ color: "var(--text-muted)" }}>
+                Theme
+              </div>
+              {(["dark", "light"] as const).map((option) => (
+                <DropdownMenu.Item
+                  key={option}
+                  onSelect={() => setTheme(option)}
+                  className="flex items-center px-2 py-1.5 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]"
+                >
+                  <div className={cn("w-1.5 h-1.5 rounded-full mr-2", theme === option ? "bg-[var(--accent)]" : "bg-transparent")} />
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </DropdownMenu.Item>
+              ))}
+
+              <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
+
               {/* Background Opacity */}
               <div className="px-2 py-1 text-[10px] uppercase font-medium" style={{ color: "var(--text-muted)" }}>
                 Opacity
@@ -154,7 +171,7 @@ export function TitleBar() {
                   onChange={(e) => setBgOpacity(parseFloat(e.target.value))}
                   className="w-full h-1 rounded-full appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, var(--accent) ${((bgOpacity - 0.3) / 0.7) * 100}%, rgba(255,255,255,0.1) ${((bgOpacity - 0.3) / 0.7) * 100}%)`,
+                    background: `linear-gradient(to right, var(--accent) ${((bgOpacity - 0.3) / 0.7) * 100}%, var(--border) ${((bgOpacity - 0.3) / 0.7) * 100}%)`,
                   }}
                 />
                 <div className="flex justify-between mt-1">
@@ -181,7 +198,7 @@ export function TitleBar() {
                   onKeyDown={(e) => { if (e.key === "Enter") setServerUrl(serverInput); }}
                   className="w-full text-xs px-2 py-1.5 rounded focus:outline-none"
                   style={{
-                    backgroundColor: "rgba(0,0,0,0.3)",
+                    backgroundColor: "var(--bg-hover)",
                     border: "1px solid var(--border)",
                     color: "var(--text-primary)",
                   }}

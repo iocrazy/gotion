@@ -35,7 +35,7 @@ export function TaskItem({ task }: TaskItemProps) {
         isSelected && "bg-[var(--accent-dim)]",
         !isSelected && "hover:bg-[var(--bg-hover)]"
       )}
-      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+      style={{ borderBottom: "1px solid var(--border)" }}
     >
       {/* Purple selection indicator */}
       {isSelected && (
@@ -52,7 +52,7 @@ export function TaskItem({ task }: TaskItemProps) {
           "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 mr-3",
           isDone
             ? "bg-[var(--done)] border-[var(--done)]"
-            : "border-white/20 hover:border-white/40"
+            : "border-[var(--text-muted)] hover:border-[var(--text-secondary)]"
         )}
       >
         {isDone && <Check className="w-2.5 h-2.5 text-white" />}

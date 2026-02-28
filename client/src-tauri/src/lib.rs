@@ -101,7 +101,9 @@ async fn get_settings(state: tauri::State<'_, CacheDb>) -> Result<String, String
     let bg_opacity = state.get_setting("bg_opacity")?
         .and_then(|s| s.parse::<f64>().ok())
         .unwrap_or(1.0);
-    Ok(serde_json::json!({ "server_url": server_url, "bg_opacity": bg_opacity }).to_string())
+    let theme = state.get_setting("theme")?
+        .unwrap_or_else(|| "dark".to_string());
+    Ok(serde_json::json!({ "server_url": server_url, "bg_opacity": bg_opacity, "theme": theme }).to_string())
 }
 
 #[tauri::command]
@@ -113,6 +115,9 @@ async fn save_settings(state: tauri::State<'_, CacheDb>, settings_json: String) 
     }
     if let Some(opacity) = settings["bg_opacity"].as_f64() {
         state.set_setting("bg_opacity", &opacity.to_string())?;
+    }
+    if let Some(theme) = settings["theme"].as_str() {
+        state.set_setting("theme", theme)?;
     }
     Ok(())
 }

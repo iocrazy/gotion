@@ -4,15 +4,30 @@
   --bg-base: #0A0A0F;
   --bg-surface: #12121A;
   --bg-hover: #1A1A25;
-  --border: rgba(255, 255, 255, 0.06);
-  --text-primary: rgba(255, 255, 255, 0.90);
-  --text-secondary: rgba(255, 255, 255, 0.45);
-  --text-muted: rgba(255, 255, 255, 0.25);
-  --accent: #8B5CF6;
-  --accent-dim: rgba(139, 92, 246, 0.15);
+  --text-primary: rgba(255,255,255,0.90);
+  --text-secondary: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.25);
+  --border: rgba(255,255,255,0.06);
+  --accent: #DC2626;
+  --accent-dim: rgba(220,38,38,0.15);
   --done: #34D399;
-  --danger: #F87171;
+  --danger: #EF4444;
   --warn: #FBBF24;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #F5F5F7;
+  --bg-surface: #FFFFFF;
+  --bg-hover: #F0F0F2;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --border: #E5E7EB;
+  --accent: #DC2626;
+  --accent-dim: rgba(220,38,38,0.08);
+  --done: #10B981;
+  --danger: #EF4444;
+  --warn: #F59E0B;
 }
 
 html, body, #root {

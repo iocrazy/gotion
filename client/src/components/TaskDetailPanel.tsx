@@ -121,7 +121,7 @@ export function TaskDetailPanel() {
                 ? "bg-[var(--done)]/15 text-[var(--done)]"
                 : "text-[var(--text-secondary)]"
             )}
-            style={!isDone ? { backgroundColor: "rgba(255,255,255,0.06)" } : undefined}
+            style={!isDone ? { backgroundColor: "var(--bg-hover)" } : undefined}
           >
             {isDone ? "Done" : "Todo"}
           </button>
@@ -131,7 +131,7 @@ export function TaskDetailPanel() {
               <button
                 className="text-xs px-2.5 py-1 rounded-full transition-colors"
                 style={{
-                  backgroundColor: task.due_date ? "var(--accent-dim)" : "rgba(255,255,255,0.06)",
+                  backgroundColor: task.due_date ? "var(--accent-dim)" : "var(--bg-hover)",
                   color: task.due_date ? "var(--accent)" : "var(--text-secondary)",
                 }}
               >

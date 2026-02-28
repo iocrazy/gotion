@@ -7,16 +7,19 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function AppShell({ className, children, ...props }: AppShellProps) {
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
+  const theme = useSettingsStore((s) => s.theme);
 
-  // Interpolate between transparent and --bg-base (#0A0A0F) based on opacity
-  const r = 10, g = 10, b = 15; // #0A0A0F
+  const [r, g, b] = theme === "light" ? [245, 245, 247] : [10, 10, 15];
   const bgColor = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
+  const shadow = theme === "light"
+    ? "shadow-[0_0_0_1px_var(--border),0_10px_25px_-5px_rgba(0,0,0,0.1)]"
+    : "shadow-[0_0_0_1px_var(--border),0_25px_50px_-12px_rgba(0,0,0,0.5)]";
 
   return (
     <div
       className={cn(
         "w-full h-screen rounded-2xl overflow-hidden flex flex-col",
-        "shadow-[0_0_0_1px_var(--border),0_25px_50px_-12px_rgba(0,0,0,0.5)]",
+        shadow,
         className
       )}
       style={{ backgroundColor: bgColor, isolation: "isolate" }}
