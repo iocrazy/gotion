@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { useTaskStore } from "../stores/taskStore";
+import { useCategoryStore } from "../stores/categoryStore";
 import { Editor } from "./Editor";
-import { X, Trash2 } from "lucide-react";
+import { SubTaskItem } from "./SubTaskItem";
+import { X, Trash2, Tag, Plus } from "lucide-react";
 import { format, startOfToday, startOfTomorrow, addDays, isSameYear } from "date-fns";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "../lib/utils";
@@ -12,7 +14,8 @@ const COLLAPSED_WIDTH = 380;
 const EXPANDED_WIDTH = 700;
 
 export function TaskDetailPanel() {
-  const { selectedTaskId, selectTask, tasks, updateTask, deleteTask } = useTaskStore();
+  const { selectedTaskId, selectTask, tasks, updateTask, deleteTask, createTask } = useTaskStore();
+  const categories = useCategoryStore((s) => s.categories);
   const task = tasks.find((t) => t.id === selectedTaskId);
   const isOpen = !!task;
 
@@ -52,6 +55,9 @@ export function TaskDetailPanel() {
   }, [isOpen, selectTask]);
 
   if (!task) return null;
+
+  const subTasks = tasks.filter((t) => t.parent_id === task.id);
+  const category = task.category_id ? categories.find((c) => c.id === task.category_id) : null;
 
   const handleTitleBlur = () => {
     if (title !== task.title) {
@@ -111,8 +117,8 @@ export function TaskDetailPanel() {
           placeholder="Title"
         />
 
-        {/* Status + Date row */}
-        <div className="flex items-center gap-3">
+        {/* Status + Date + Category row */}
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => updateTask(task.id, { status: isDone ? "todo" : "done" })}
             className={cn(
@@ -159,6 +165,82 @@ export function TaskDetailPanel() {
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                className="text-xs px-2.5 py-1 rounded-full transition-colors flex items-center gap-1"
+                style={{
+                  backgroundColor: category ? "var(--accent-dim)" : "var(--bg-hover)",
+                  color: category ? "var(--accent)" : "var(--text-secondary)",
+                }}
+              >
+                <Tag className="w-3 h-3" />
+                {category ? category.name : "Add category"}
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="rounded-lg p-1 shadow-2xl z-50 min-w-[180px]"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                {categories.map((cat) => (
+                  <DropdownMenu.Item
+                    key={cat.id}
+                    onSelect={() => updateTask(task.id, { category_id: cat.id })}
+                    className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)] flex items-center gap-2"
+                  >
+                    {cat.icon && <span>{cat.icon}</span>}
+                    <span>{cat.name}</span>
+                  </DropdownMenu.Item>
+                ))}
+                {categories.length === 0 && (
+                  <div className="px-3 py-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                    No categories
+                  </div>
+                )}
+                {task.category_id && (
+                  <>
+                    <DropdownMenu.Separator className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
+                    <DropdownMenu.Item
+                      onSelect={() => updateTask(task.id, { category_id: null })}
+                      className="px-3 py-2 text-xs rounded cursor-pointer outline-none hover:bg-[var(--bg-hover)]"
+                      style={{ color: "var(--danger)" }}
+                    >
+                      Clear
+                    </DropdownMenu.Item>
+                  </>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px" style={{ backgroundColor: "var(--border)" }} />
+
+        {/* Sub-tasks section */}
+        <div className="space-y-1">
+          <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            Sub-tasks
+          </span>
+          {subTasks.map((st) => (
+            <SubTaskItem key={st.id} task={st} />
+          ))}
+          <button
+            onClick={() => createTask("New sub-task", { parent_id: task.id })}
+            className="flex items-center gap-1.5 text-xs py-1 transition-colors"
+            style={{ color: "var(--text-muted)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+          >
+            <Plus className="w-3 h-3" />
+            Add Sub-task
+          </button>
         </div>
 
         {/* Divider */}
