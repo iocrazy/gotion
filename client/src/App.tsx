@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { GlassPanel } from "./components/GlassPanel";
+import { AppShell } from "./components/GlassPanel";
 import { TitleBar } from "./components/TitleBar";
 import { TaskList } from "./components/TaskList";
 import { AddTask } from "./components/AddTask";
@@ -22,7 +22,7 @@ function AppContent() {
   const syncStatus = useWebSocket();
 
   return (
-    <GlassPanel>
+    <AppShell>
       <TitleBar />
 
       {/* Task List (Scrollable) */}
@@ -40,7 +40,7 @@ function AppContent() {
             ? "○ Connecting..."
             : "● Offline"}
       </div>
-    </GlassPanel>
+    </AppShell>
   );
 }
 

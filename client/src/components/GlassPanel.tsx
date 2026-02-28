@@ -1,24 +1,18 @@
 import { cn } from "../lib/utils";
-import { useThemeStore } from "../stores/themeStore";
 
-interface GlassPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function GlassPanel({ className, children, ...props }: GlassPanelProps) {
-  const theme = useThemeStore((s) => s.theme);
-  const glassOpacity = useThemeStore((s) => s.glassOpacity);
-
+export function AppShell({ className, children, ...props }: AppShellProps) {
   return (
     <div
       className={cn(
-        "w-full h-screen rounded-2xl overflow-hidden shadow-2xl flex flex-col",
-        theme === "dark"
-          ? "bg-[#1C1C1E] border border-white/10"
-          : "backdrop-blur-xl border border-white/20",
+        "w-full h-screen rounded-2xl overflow-hidden flex flex-col",
+        "shadow-[0_0_0_1px_var(--border),0_25px_50px_-12px_rgba(0,0,0,0.5)]",
         className
       )}
-      style={theme === "glass" ? { backgroundColor: `rgba(255,255,255,${glassOpacity / 100})` } : undefined}
+      style={{ backgroundColor: "var(--bg-base)" }}
       {...props}
     >
       {children}

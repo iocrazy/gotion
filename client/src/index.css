@@ -1,11 +1,27 @@
 @import "tailwindcss";
 
+:root {
+  --bg-base: #0A0A0F;
+  --bg-surface: #12121A;
+  --bg-hover: #1A1A25;
+  --border: rgba(255, 255, 255, 0.06);
+  --text-primary: rgba(255, 255, 255, 0.90);
+  --text-secondary: rgba(255, 255, 255, 0.45);
+  --text-muted: rgba(255, 255, 255, 0.25);
+  --accent: #8B5CF6;
+  --accent-dim: rgba(139, 92, 246, 0.15);
+  --done: #34D399;
+  --danger: #F87171;
+  --warn: #FBBF24;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
   height: 100%;
   background: transparent;
   overflow: hidden;
+  color: var(--text-primary);
 }
 
 /* TipTap editor styles */
