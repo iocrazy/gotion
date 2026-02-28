@@ -1,4 +1,5 @@
 pub mod blocks;
+pub mod images;
 pub mod tasks;
 
 use std::sync::Arc;
@@ -18,5 +19,6 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(tasks::router())
         .merge(blocks::router())
+        .merge(images::router())
         .with_state(state)
 }
