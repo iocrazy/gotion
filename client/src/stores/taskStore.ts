@@ -12,6 +12,7 @@ interface TaskState {
   filter: StatusFilter;
   groupBy: GroupBy;
   selectedTaskId: string | null;
+  selectedCategoryId: string | null;
   loading: boolean;
   error: string | null;
 
@@ -20,13 +21,17 @@ interface TaskState {
   setFilter: (filter: StatusFilter) => void;
   setGroupBy: (groupBy: GroupBy) => void;
   selectTask: (id: string | null) => void;
-  createTask: (title: string, opts?: { due_date?: string; priority?: Priority }) => Promise<void>;
+  setSelectedCategoryId: (id: string | null) => void;
+  createTask: (title: string, opts?: { due_date?: string; priority?: Priority; category_id?: string | null; parent_id?: string | null }) => Promise<void>;
   updateTask: (
     id: string,
     data: {
       title?: string;
       status?: "todo" | "done";
       due_date?: string | null;
+      category_id?: string | null;
+      parent_id?: string | null;
+      sort_order?: number;
     },
   ) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -57,6 +62,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   filter: "all",
   groupBy: "status",
   selectedTaskId: null,
+  selectedCategoryId: null,
   loading: false,
   error: null,
 
@@ -96,13 +102,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   selectTask: (id) => set({ selectedTaskId: id }),
 
+  setSelectedCategoryId: (id) => set({ selectedCategoryId: id }),
+
   createTask: async (title, opts) => {
     try {
       const task = await api.createTask({
         title,
         due_date: opts?.due_date,
+        category_id: opts?.category_id,
+        parent_id: opts?.parent_id,
       });
-      set((state) => ({ tasks: [task, ...state.tasks] }));
+      // Use upsert logic to avoid duplicates (WebSocket may have already added it)
+      set((state) => {
+        const exists = state.tasks.find((t) => t.id === task.id);
+        if (exists) {
+          return { tasks: state.tasks.map((t) => (t.id === task.id ? task : t)) };
+        }
+        return { tasks: [task, ...state.tasks] };
+      });
     } catch {
       // Offline: optimistic update + queue
       const tempTask: Task = {
@@ -116,11 +133,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         title_updated_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
         due_date_updated_at: opts?.due_date ? new Date().toISOString() : null,
+        category_id: opts?.category_id ?? null,
+        parent_id: opts?.parent_id ?? null,
+        sort_order: 0,
       };
       set((state) => ({ tasks: [tempTask, ...state.tasks] }));
       await queueOfflineOp("task", tempTask.id, "create", {
         title,
         due_date: opts?.due_date,
+        category_id: opts?.category_id,
+        parent_id: opts?.parent_id,
       });
     }
   },

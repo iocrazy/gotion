@@ -15,6 +15,9 @@ export interface Task {
   title_updated_at: string;
   status_updated_at: string;
   due_date_updated_at: string | null;
+  category_id: string | null;
+  parent_id: string | null;
+  sort_order: number;
 }
 
 export interface Block {
@@ -27,16 +30,30 @@ export interface Block {
   updated_at: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface CreateTaskRequest {
   title: string;
   status?: "todo" | "done";
   due_date?: string | null;
+  category_id?: string | null;
+  parent_id?: string | null;
 }
 
 export interface UpdateTaskRequest {
   title?: string;
   status?: "todo" | "done";
   due_date?: string | null;
+  category_id?: string | null;
+  parent_id?: string | null;
+  sort_order?: number;
 }
 
 export const api = {
@@ -89,6 +106,27 @@ export const api = {
     });
     if (!res.ok) throw new Error(`Failed to update blocks: ${res.status}`);
     return res.json();
+  },
+
+  async listCategories(): Promise<Category[]> {
+    const res = await fetch(`${getBaseUrl()}/api/categories`);
+    if (!res.ok) throw new Error(`Failed to list categories: ${res.status}`);
+    return res.json();
+  },
+
+  async createCategory(data: { name: string; icon?: string; color?: string; sort_order?: number }): Promise<Category> {
+    const res = await fetch(`${getBaseUrl()}/api/categories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to create category: ${res.status}`);
+    return res.json();
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) throw new Error(`Failed to delete category: ${res.status}`);
   },
 
   async uploadImage(file: File): Promise<{ id: string; url: string }> {

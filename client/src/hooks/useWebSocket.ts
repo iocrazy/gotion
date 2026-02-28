@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTaskStore } from "../stores/taskStore";
+import { useCategoryStore } from "../stores/categoryStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { isTauri, tauriInvoke } from "../lib/tauri";
 import { api } from "../lib/api";
@@ -49,6 +50,7 @@ export function useWebSocket(): SyncStatus {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasDisconnectedRef = useRef(false);
   const { upsertTask, removeTask } = useTaskStore();
+  const { upsertCategory, removeCategory } = useCategoryStore();
   const serverUrl = useSettingsStore((s) => s.serverUrl);
 
   useEffect(() => {
@@ -93,6 +95,15 @@ export function useWebSocket(): SyncStatus {
             case "task_deleted":
               removeTask(msg.data.id);
               break;
+            case "category_created":
+              upsertCategory(msg.data);
+              break;
+            case "category_updated":
+              upsertCategory(msg.data);
+              break;
+            case "category_deleted":
+              removeCategory(msg.data.id);
+              break;
             case "blocks_updated":
               break;
             case "pong":
@@ -125,7 +136,7 @@ export function useWebSocket(): SyncStatus {
         wsRef.current.close();
       }
     };
-  }, [upsertTask, removeTask, serverUrl]);
+  }, [upsertTask, removeTask, upsertCategory, removeCategory, serverUrl]);
 
   return status;
 }
