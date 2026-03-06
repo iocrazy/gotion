@@ -8,6 +8,9 @@ import { TasksView } from "./components/TasksView";
 import { AddTaskPanel } from "./components/AddTaskPanel";
 import { CreateCategoryModal } from "./components/CreateCategoryModal";
 import { TaskDetailView } from "./components/TaskDetailView";
+import { SidebarMenu } from "./components/SidebarMenu";
+import { SearchView } from "./components/SearchView";
+import { StarredTasksView } from "./components/StarredTasksView";
 import { AnimatePresence } from "motion/react";
 import type { AppView } from "./components/BottomNav";
 
@@ -30,6 +33,7 @@ function AppContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [showStarred, setShowStarred] = useState(false);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   return (
@@ -60,6 +64,35 @@ function AppContent() {
           open={showCreateCategory}
           onClose={() => setShowCreateCategory(false)}
         />
+
+        {/* Sidebar */}
+        <SidebarMenu
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onSettingsClick={() => { /* TODO: SettingsView in Task 12 */ }}
+          onStarredClick={() => {
+            setIsSidebarOpen(false);
+            setShowStarred(true);
+          }}
+          onCreateCategory={() => {
+            setIsSidebarOpen(false);
+            setShowCreateCategory(true);
+          }}
+        />
+
+        {/* Search View */}
+        <AnimatePresence>
+          {isSearching && (
+            <SearchView onClose={() => setIsSearching(false)} />
+          )}
+        </AnimatePresence>
+
+        {/* Starred Tasks View */}
+        <AnimatePresence>
+          {showStarred && (
+            <StarredTasksView onBack={() => setShowStarred(false)} />
+          )}
+        </AnimatePresence>
 
         {/* Task Detail View */}
         <AnimatePresence>
