@@ -14,6 +14,7 @@ import { StarredTasksView } from "./components/StarredTasksView";
 import { CalendarView } from "./components/CalendarView";
 import { MineView } from "./components/MineView";
 import { AnimatePresence } from "motion/react";
+import { SettingsView } from "./components/SettingsView";
 import type { AppView } from "./components/BottomNav";
 
 function App() {
@@ -36,6 +37,7 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showStarred, setShowStarred] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   return (
@@ -57,7 +59,7 @@ function AppContent() {
         )}
         {currentView === "mine" && (
           <MineView
-            onSettingsClick={() => { /* TODO: SettingsView in Task 12 */ }}
+            onSettingsClick={() => setShowSettings(true)}
           />
         )}
 
@@ -81,7 +83,10 @@ function AppContent() {
         <SidebarMenu
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          onSettingsClick={() => { /* TODO: SettingsView in Task 12 */ }}
+          onSettingsClick={() => {
+            setIsSidebarOpen(false);
+            setShowSettings(true);
+          }}
           onStarredClick={() => {
             setIsSidebarOpen(false);
             setShowStarred(true);
@@ -109,6 +114,13 @@ function AppContent() {
         {/* Task Detail View */}
         <AnimatePresence>
           {selectedTaskId && <TaskDetailView />}
+        </AnimatePresence>
+
+        {/* Settings View */}
+        <AnimatePresence>
+          {showSettings && (
+            <SettingsView onClose={() => setShowSettings(false)} />
+          )}
         </AnimatePresence>
 
         {/* Status bar */}

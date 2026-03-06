@@ -37,7 +37,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           theme,
           loaded: true,
         });
-      } catch {
+      } catch (e) {
+        console.error("Failed to load settings:", e);
         set({ loaded: true });
       }
     } else {
