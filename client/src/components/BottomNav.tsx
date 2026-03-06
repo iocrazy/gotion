@@ -1,6 +1,6 @@
 import { Calendar as CalendarIcon, User } from "lucide-react";
 
-export type AppView = "tasks" | "calendar" | "mine" | "starred";
+export type AppView = "tasks" | "calendar" | "mine";
 
 interface BottomNavProps {
   currentView: AppView;

@@ -11,6 +11,8 @@ import { TaskDetailView } from "./components/TaskDetailView";
 import { SidebarMenu } from "./components/SidebarMenu";
 import { SearchView } from "./components/SearchView";
 import { StarredTasksView } from "./components/StarredTasksView";
+import { CalendarView } from "./components/CalendarView";
+import { MineView } from "./components/MineView";
 import { AnimatePresence } from "motion/react";
 import type { AppView } from "./components/BottomNav";
 
@@ -47,7 +49,17 @@ function AppContent() {
             onMenuClick={() => setIsSidebarOpen(true)}
           />
         )}
-        {/* CalendarView and MineView will be added in later tasks */}
+        {currentView === "calendar" && (
+          <CalendarView
+            onSearch={() => setIsSearching(true)}
+            onMenuClick={() => setIsSidebarOpen(true)}
+          />
+        )}
+        {currentView === "mine" && (
+          <MineView
+            onSettingsClick={() => { /* TODO: SettingsView in Task 12 */ }}
+          />
+        )}
 
         {/* Bottom Navigation */}
         <BottomNav currentView={currentView} onViewChange={setCurrentView} />
