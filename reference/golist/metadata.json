@@ -1,0 +1,5 @@
+{
+  "name": "goList",
+  "description": "A cross-platform task management app mimicking a popular to-do list interface.",
+  "requestFramePermissions": []
+}

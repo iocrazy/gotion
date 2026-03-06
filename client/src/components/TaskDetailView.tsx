@@ -7,9 +7,6 @@ import {
   FileText,
   Paperclip,
   Crown,
-  Circle,
-  CheckCircle2,
-  Menu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTaskStore } from "../stores/taskStore";
@@ -17,29 +14,27 @@ import { useCategoryStore } from "../stores/categoryStore";
 import { SubTaskItem } from "./SubTaskItem";
 import { SettingItem } from "./ui/SettingItem";
 import { TaskDetailMoreOptions } from "./TaskDetailMoreOptions";
+import { DatePickerModal } from "./DatePickerModal";
+import { CategoryPickerModal } from "./CategoryPickerModal";
 import { format } from "date-fns";
 
 export function TaskDetailView() {
-  const { selectedTaskId, selectTask, tasks, updateTask, createTask } =
+  const { selectedTaskId, selectTask, tasks, updateTask, createTask, deleteTask } =
     useTaskStore();
   const categories = useCategoryStore((s) => s.categories);
   const task = tasks.find((t) => t.id === selectedTaskId);
 
   const [title, setTitle] = useState("");
-  const [subtasks, setSubtaskState] = useState<typeof tasks>([]);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  const subtasks = task ? tasks.filter((t) => t.parent_id === task.id) : [];
 
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-    }
-  }, [task]);
-
-  useEffect(() => {
-    if (task) {
-      setSubtaskState(tasks.filter((t) => t.parent_id === task.id));
-    }
-  }, [task, tasks]);
+    if (task) setTitle(task.title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTaskId]);
 
   // Close on Escape
   useEffect(() => {
@@ -102,6 +97,7 @@ export function TaskDetailView() {
           className={`flex items-center gap-1 font-medium ${
             isDone ? "text-gray-500" : "text-gray-400"
           }`}
+          onClick={() => setShowCategoryPicker(true)}
         >
           {category?.name || "No Category"} <ChevronDown size={16} />
         </button>
@@ -169,6 +165,7 @@ export function TaskDetailView() {
               </span>
             }
             hasBorder={false}
+            onClick={() => setShowDatePicker(true)}
           />
         </div>
 
@@ -205,12 +202,31 @@ export function TaskDetailView() {
             onToggleDone={handleToggleDone}
             onClose={() => setShowMoreOptions(false)}
             onDelete={() => {
-              useTaskStore.getState().deleteTask(task.id);
+              deleteTask(task.id);
               selectTask(null);
             }}
           />
         )}
       </AnimatePresence>
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        open={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        currentDate={task.due_date}
+        onDateSelect={(date) => {
+          updateTask(task.id, { due_date: date });
+        }}
+      />
+
+      {/* Category Picker Modal */}
+      <CategoryPickerModal
+        open={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onSelect={(categoryId) => {
+          updateTask(task.id, { category_id: categoryId });
+        }}
+      />
     </motion.div>
   );
 }
