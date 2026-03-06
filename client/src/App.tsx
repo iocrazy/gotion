@@ -7,6 +7,8 @@ import { BottomNav } from "./components/BottomNav";
 import { TasksView } from "./components/TasksView";
 import { AddTaskPanel } from "./components/AddTaskPanel";
 import { CreateCategoryModal } from "./components/CreateCategoryModal";
+import { TaskDetailView } from "./components/TaskDetailView";
+import { AnimatePresence } from "motion/react";
 import type { AppView } from "./components/BottomNav";
 
 function App() {
@@ -58,6 +60,11 @@ function AppContent() {
           open={showCreateCategory}
           onClose={() => setShowCreateCategory(false)}
         />
+
+        {/* Task Detail View */}
+        <AnimatePresence>
+          {selectedTaskId && <TaskDetailView />}
+        </AnimatePresence>
 
         {/* Status bar */}
         <div

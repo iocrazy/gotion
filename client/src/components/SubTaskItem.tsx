@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Check, X } from "lucide-react";
-import { cn } from "../lib/utils";
+import { Circle, CheckCircle2, Menu } from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
 import type { Task } from "../lib/api";
 
@@ -9,7 +8,7 @@ interface SubTaskItemProps {
 }
 
 export function SubTaskItem({ task }: SubTaskItemProps) {
-  const { updateTask, deleteTask, toggleTaskStatus } = useTaskStore();
+  const { updateTask, toggleTaskStatus } = useTaskStore();
   const [title, setTitle] = useState(task.title);
   const isDone = task.status === "done";
 
@@ -20,33 +19,29 @@ export function SubTaskItem({ task }: SubTaskItemProps) {
   };
 
   return (
-    <div className="flex items-center gap-2 h-8 group">
+    <div className="flex items-center gap-3">
       <button
+        className={isDone ? "text-red-500" : "text-gray-300"}
         onClick={() => toggleTaskStatus(task.id)}
-        className={cn(
-          "w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center transition-all shrink-0",
-          isDone
-            ? "bg-[var(--accent)] border-[var(--accent)]"
-            : "border-[var(--text-muted)] hover:border-[var(--accent)]"
-        )}
       >
-        {isDone && <Check className="w-2.5 h-2.5 text-white" />}
+        {isDone ? (
+          <CheckCircle2 size={20} strokeWidth={1.5} />
+        ) : (
+          <Circle size={20} strokeWidth={1.5} />
+        )}
       </button>
       <input
+        type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={handleBlur}
-        className={cn(
-          "flex-1 bg-transparent text-xs focus:outline-none",
-          isDone && "line-through"
-        )}
-        style={{ color: isDone ? "var(--text-muted)" : "var(--text-primary)" }}
+        className={`flex-1 bg-transparent outline-none ${
+          isDone ? "text-gray-400 line-through" : "text-gray-800"
+        }`}
+        placeholder="Sub-task"
       />
-      <button
-        onClick={() => deleteTask(task.id)}
-        className="p-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-muted)] hover:text-[var(--danger)]"
-      >
-        <X className="w-3 h-3" />
+      <button className="text-gray-300">
+        <Menu size={20} strokeWidth={1.5} />
       </button>
     </div>
   );
