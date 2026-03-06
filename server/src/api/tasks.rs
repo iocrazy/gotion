@@ -21,7 +21,7 @@ async fn list_tasks(
     State(state): State<AppState>,
     Query(query): Query<TaskListQuery>,
 ) -> Result<Json<Vec<Task>>, StatusCode> {
-    let tasks = db::tasks::list_tasks(&state.pool, query.status.as_ref())
+    let tasks = db::tasks::list_tasks(&state.pool, query.status.as_ref(), query.search.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -83,6 +83,7 @@ async fn update_task(
         req.category_id.map(Some),
         req.parent_id.map(Some),
         req.sort_order,
+        req.starred,
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

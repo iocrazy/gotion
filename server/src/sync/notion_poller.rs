@@ -89,6 +89,7 @@ pub async fn start_polling(pool: PgPool, client: Arc<NotionClient>, broadcast: W
                                     None,
                                     None,
                                     None,
+                                    None,
                                 )
                                 .await
                                 {

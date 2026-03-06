@@ -24,6 +24,8 @@ pub struct Task {
     pub category_id: Option<Uuid>,
     pub parent_id: Option<Uuid>,
     pub sort_order: i32,
+    pub starred: bool,
+    pub starred_updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,11 +69,13 @@ pub struct UpdateTaskRequest {
     pub category_id: Option<Uuid>,
     pub parent_id: Option<Uuid>,
     pub sort_order: Option<i32>,
+    pub starred: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TaskListQuery {
     pub status: Option<TaskStatus>,
+    pub search: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

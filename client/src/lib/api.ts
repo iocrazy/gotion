@@ -18,6 +18,8 @@ export interface Task {
   category_id: string | null;
   parent_id: string | null;
   sort_order: number;
+  starred: boolean;
+  starred_updated_at: string | null;
 }
 
 export interface Block {
@@ -54,12 +56,16 @@ export interface UpdateTaskRequest {
   category_id?: string | null;
   parent_id?: string | null;
   sort_order?: number;
+  starred?: boolean;
 }
 
 export const api = {
-  async listTasks(status?: "todo" | "done"): Promise<Task[]> {
-    const params = status ? `?status=${status}` : "";
-    const res = await fetch(`${getBaseUrl()}/api/tasks${params}`);
+  async listTasks(status?: "todo" | "done", search?: string): Promise<Task[]> {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (search) params.set("search", search);
+    const qs = params.toString();
+    const res = await fetch(`${getBaseUrl()}/api/tasks${qs ? `?${qs}` : ""}`);
     if (!res.ok) throw new Error(`Failed to list tasks: ${res.status}`);
     return res.json();
   },

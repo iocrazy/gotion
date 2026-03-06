@@ -32,10 +32,12 @@ interface TaskState {
       category_id?: string | null;
       parent_id?: string | null;
       sort_order?: number;
+      starred?: boolean;
     },
   ) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   toggleTaskStatus: (id: string) => Promise<void>;
+  toggleStar: (id: string) => Promise<void>;
 
   // For WebSocket updates
   upsertTask: (task: Task) => void;
@@ -136,6 +138,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         category_id: opts?.category_id ?? null,
         parent_id: opts?.parent_id ?? null,
         sort_order: 0,
+        starred: false,
+        starred_updated_at: null,
       };
       set((state) => ({ tasks: [tempTask, ...state.tasks] }));
       await queueOfflineOp("task", tempTask.id, "create", {
@@ -184,6 +188,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (!task) return;
     const newStatus = task.status === "todo" ? "done" : "todo";
     await get().updateTask(id, { status: newStatus });
+  },
+
+  toggleStar: async (id) => {
+    const task = get().tasks.find((t) => t.id === id);
+    if (!task) return;
+    await get().updateTask(id, { starred: !task.starred });
   },
 
   // WebSocket handlers

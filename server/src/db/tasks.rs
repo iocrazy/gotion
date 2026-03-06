@@ -19,6 +19,8 @@ struct TaskRow {
     category_id: Option<Uuid>,
     parent_id: Option<Uuid>,
     sort_order: i32,
+    starred: bool,
+    starred_updated_at: Option<DateTime<Utc>>,
 }
 
 fn parse_status(s: &str) -> TaskStatus {
@@ -51,42 +53,50 @@ impl From<TaskRow> for Task {
             category_id: row.category_id,
             parent_id: row.parent_id,
             sort_order: row.sort_order,
+            starred: row.starred,
+            starred_updated_at: row.starred_updated_at,
         }
     }
 }
 
-/// List tasks, optionally filtered by status, ordered by due_date ASC NULLS LAST then created_at DESC.
+/// List tasks, optionally filtered by status and/or search term, ordered by sort_order ASC, due_date ASC NULLS LAST, created_at DESC.
 pub async fn list_tasks(
     pool: &PgPool,
     status_filter: Option<&TaskStatus>,
+    search: Option<&str>,
 ) -> Result<Vec<Task>, sqlx::Error> {
-    let rows = match status_filter {
-        Some(status) => {
-            let status_str = status_to_str(status);
-            sqlx::query_as::<_, TaskRow>(
-                "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
-                 title_updated_at, status_updated_at, due_date_updated_at, \
-                 category_id, parent_id, sort_order \
-                 FROM tasks WHERE status = $1 \
-                 ORDER BY sort_order ASC, due_date ASC NULLS LAST, created_at DESC",
-            )
-            .bind(status_str)
-            .fetch_all(pool)
-            .await?
-        }
-        None => {
-            sqlx::query_as::<_, TaskRow>(
-                "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
-                 title_updated_at, status_updated_at, due_date_updated_at, \
-                 category_id, parent_id, sort_order \
-                 FROM tasks \
-                 ORDER BY sort_order ASC, due_date ASC NULLS LAST, created_at DESC",
-            )
-            .fetch_all(pool)
-            .await?
-        }
+    let base = "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
+                title_updated_at, status_updated_at, due_date_updated_at, \
+                category_id, parent_id, sort_order, starred, starred_updated_at \
+                FROM tasks";
+    let order = "ORDER BY sort_order ASC, due_date ASC NULLS LAST, created_at DESC";
+
+    let mut conditions: Vec<String> = Vec::new();
+    let status_str = status_filter.map(|s| status_to_str(s).to_string());
+    let search_pattern = search.map(|s| format!("%{}%", s));
+
+    if status_str.is_some() {
+        conditions.push(format!("status = ${}", conditions.len() + 1));
+    }
+    if search_pattern.is_some() {
+        conditions.push(format!("title ILIKE ${}", conditions.len() + 1));
+    }
+
+    let query_str = if conditions.is_empty() {
+        format!("{} {}", base, order)
+    } else {
+        format!("{} WHERE {} {}", base, conditions.join(" AND "), order)
     };
 
+    let mut query = sqlx::query_as::<_, TaskRow>(&query_str);
+    if let Some(ref s) = status_str {
+        query = query.bind(s);
+    }
+    if let Some(ref p) = search_pattern {
+        query = query.bind(p);
+    }
+
+    let rows = query.fetch_all(pool).await?;
     Ok(rows.into_iter().map(Task::from).collect())
 }
 
@@ -95,7 +105,7 @@ pub async fn get_task(pool: &PgPool, id: Uuid) -> Result<Option<Task>, sqlx::Err
     let row = sqlx::query_as::<_, TaskRow>(
         "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
-         category_id, parent_id, sort_order \
+         category_id, parent_id, sort_order, starred, starred_updated_at \
          FROM tasks WHERE id = $1",
     )
     .bind(id)
@@ -120,11 +130,12 @@ pub async fn create_task(
 
     let row = sqlx::query_as::<_, TaskRow>(
         "INSERT INTO tasks (title, status, due_date, category_id, parent_id, \
-         created_at, updated_at, title_updated_at, status_updated_at, due_date_updated_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $6, $6, $6, $7) \
+         created_at, updated_at, title_updated_at, status_updated_at, due_date_updated_at, \
+         starred, starred_updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $6, $6, $6, $7, false, NULL) \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
-         category_id, parent_id, sort_order",
+         category_id, parent_id, sort_order, starred, starred_updated_at",
     )
     .bind(&title)
     .bind(status_str)
@@ -160,6 +171,7 @@ pub async fn update_task(
     category_id: Option<Option<Uuid>>,
     parent_id: Option<Option<Uuid>>,
     sort_order: Option<i32>,
+    starred: Option<bool>,
 ) -> Result<Option<Task>, sqlx::Error> {
     // First fetch the current task to merge fields
     let existing = match get_task(pool, id).await? {
@@ -188,6 +200,7 @@ pub async fn update_task(
         existing.parent_id
     };
     let new_sort_order = sort_order.unwrap_or(existing.sort_order);
+    let new_starred = starred.unwrap_or(existing.starred);
 
     let new_title_updated_at = if title.is_some() {
         now
@@ -204,15 +217,21 @@ pub async fn update_task(
     } else {
         existing.due_date_updated_at
     };
+    let new_starred_updated_at = if starred.is_some() {
+        Some(now)
+    } else {
+        existing.starred_updated_at
+    };
 
     let row = sqlx::query_as::<_, TaskRow>(
         "UPDATE tasks SET title = $1, status = $2, due_date = $3, updated_at = $4, \
          title_updated_at = $5, status_updated_at = $6, due_date_updated_at = $7, \
-         category_id = $8, parent_id = $9, sort_order = $10 \
-         WHERE id = $11 \
+         category_id = $8, parent_id = $9, sort_order = $10, \
+         starred = $11, starred_updated_at = $12 \
+         WHERE id = $13 \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
-         category_id, parent_id, sort_order",
+         category_id, parent_id, sort_order, starred, starred_updated_at",
     )
     .bind(new_title)
     .bind(new_status_str)
@@ -224,6 +243,8 @@ pub async fn update_task(
     .bind(new_category_id)
     .bind(new_parent_id)
     .bind(new_sort_order)
+    .bind(new_starred)
+    .bind(new_starred_updated_at)
     .bind(id)
     .fetch_optional(pool)
     .await?;
