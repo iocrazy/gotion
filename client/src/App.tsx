@@ -6,6 +6,7 @@ import { useTaskStore } from "./stores/taskStore";
 import { BottomNav } from "./components/BottomNav";
 import { TasksView } from "./components/TasksView";
 import { AddTaskPanel } from "./components/AddTaskPanel";
+import { CreateCategoryModal } from "./components/CreateCategoryModal";
 import type { AppView } from "./components/BottomNav";
 
 function App() {
@@ -26,6 +27,7 @@ function AppContent() {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   return (
@@ -48,6 +50,13 @@ function AppContent() {
         <AddTaskPanel
           open={isAddingTask}
           onClose={() => setIsAddingTask(false)}
+          onCreateCategory={() => setShowCreateCategory(true)}
+        />
+
+        {/* Create Category Modal */}
+        <CreateCategoryModal
+          open={showCreateCategory}
+          onClose={() => setShowCreateCategory(false)}
         />
 
         {/* Status bar */}

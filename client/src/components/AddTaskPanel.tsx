@@ -1,43 +1,39 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Plus, Check, Calendar, Flag, Tag } from "lucide-react";
-import { format, startOfToday, startOfTomorrow, addDays } from "date-fns";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { cn } from "../lib/utils";
+import {
+  Plus,
+  Check,
+  Circle,
+  X,
+  Clock,
+  Bell,
+  Repeat,
+  ListTree,
+  Target,
+  Lightbulb,
+  CheckCircle2,
+  Folder,
+  Briefcase,
+  Coffee,
+  Heart,
+  Cake,
+} from "lucide-react";
+import { format } from "date-fns";
 import { useTaskStore } from "../stores/taskStore";
 import { useCategoryStore } from "../stores/categoryStore";
-
-type Priority = "none" | "low" | "medium" | "high";
-
-const priorityPrefix: Record<Priority, string> = {
-  none: "",
-  low: "! ",
-  medium: "!! ",
-  high: "!!! ",
-};
-
-const priorityColors: Record<Priority, string> = {
-  none: "var(--text-muted)",
-  low: "var(--info, #3b82f6)",
-  medium: "var(--warn, #f59e0b)",
-  high: "var(--danger, #ef4444)",
-};
-
-interface SubTaskDraft {
-  id: string;
-  title: string;
-}
+import { BottomSheet } from "./ui/BottomSheet";
 
 interface AddTaskPanelProps {
   open: boolean;
   onClose: () => void;
+  onCreateCategory?: () => void;
 }
 
-export function AddTaskPanel({ open, onClose }: AddTaskPanelProps) {
+export function AddTaskPanel({ open, onClose, onCreateCategory }: AddTaskPanelProps) {
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [priority, setPriority] = useState<Priority>("none");
+  const [showCategory, setShowCategory] = useState(false);
+  const [showSubtask, setShowSubtask] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [subTasks, setSubTasks] = useState<SubTaskDraft[]>([]);
+  const [subtasks, setSubtasks] = useState<{ id: string; text: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { createTask } = useTaskStore();
@@ -47,49 +43,24 @@ export function AddTaskPanel({ open, onClose }: AddTaskPanelProps) {
 
   const resetForm = useCallback(() => {
     setTitle("");
-    setDueDate(undefined);
-    setPriority("none");
+    setShowCategory(false);
+    setShowSubtask(false);
     setCategoryId(null);
-    setSubTasks([]);
+    setSubtasks([]);
   }, []);
 
-  // Auto-focus title input when panel opens
   useEffect(() => {
     if (open) {
-      // Small delay so the panel animation can start
-      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(timer);
     }
   }, [open]);
-
-  // Escape key dismisses
-  useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
 
   const handleSubmit = async () => {
     const trimmed = title.trim();
     if (!trimmed) return;
 
-    const fullTitle = priorityPrefix[priority] + trimmed;
-
-    // NOTE: createTask returns Promise<void>, not the created task object.
-    // Therefore we cannot create sub-tasks linked to this parent during creation.
-    // Sub-tasks drafted here are intentionally ignored for now.
-    // Users can add sub-tasks later via the TaskDetailPanel.
-    await createTask(fullTitle, {
-      due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : undefined,
-      priority: priority !== "none" ? priority : undefined,
-      category_id: categoryId,
-    });
-
+    await createTask(trimmed, { category_id: categoryId });
     resetForm();
     onClose();
   };
@@ -101,319 +72,173 @@ export function AddTaskPanel({ open, onClose }: AddTaskPanelProps) {
     }
   };
 
-  const addSubTask = () => {
-    setSubTasks((prev) => [...prev, { id: crypto.randomUUID(), title: "" }]);
+  const addSubtask = () => {
+    setSubtasks((prev) => [...prev, { id: crypto.randomUUID(), text: "" }]);
   };
 
-  const updateSubTask = (id: string, newTitle: string) => {
-    setSubTasks((prev) =>
-      prev.map((st) => (st.id === id ? { ...st, title: newTitle } : st))
+  const updateSubtask = (id: string, text: string) => {
+    setSubtasks((prev) =>
+      prev.map((st) => (st.id === id ? { ...st, text } : st)),
     );
   };
 
-  const removeSubTask = (id: string) => {
-    setSubTasks((prev) => prev.filter((st) => st.id !== id));
+  const removeSubtask = (id: string) => {
+    setSubtasks((prev) => prev.filter((st) => st.id !== id));
+    if (subtasks.length === 1) {
+      setShowSubtask(false);
+      setSubtasks([]);
+    }
   };
 
-  if (!open) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 z-30"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
-        onClick={onClose}
-      />
-
-      {/* Bottom sheet panel */}
-      <div
-        className="absolute bottom-0 left-0 right-0 z-40 rounded-t-xl p-4"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderTop: "1px solid var(--border)",
-          boxShadow: "0 -4px 24px rgba(0, 0, 0, 0.2)",
-        }}
-      >
+    <BottomSheet open={open} onClose={onClose}>
+      <div className="p-6 pb-12">
         {/* Title input */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="What do you want to do?"
-          className="w-full bg-transparent text-sm font-medium tracking-wide focus:outline-none mb-3"
-          style={{ color: "var(--text-primary)" }}
-        />
-
-        {/* Sub-tasks section */}
-        {subTasks.length > 0 && (
-          <div className="mb-3 space-y-1.5">
-            {subTasks.map((st) => (
-              <div key={st.id} className="flex items-center gap-2">
-                <div
-                  className="w-3.5 h-3.5 rounded-full border flex-shrink-0"
-                  style={{ borderColor: "var(--border)" }}
-                />
-                <input
-                  type="text"
-                  value={st.title}
-                  onChange={(e) => updateSubTask(st.id, e.target.value)}
-                  placeholder="Sub-task title"
-                  className="flex-1 bg-transparent text-xs focus:outline-none"
-                  style={{ color: "var(--text-secondary)" }}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeSubTask(st.id)}
-                  className="p-0.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Add sub-task link */}
-        <button
-          type="button"
-          onClick={addSubTask}
-          className="flex items-center gap-1 text-xs mb-3 transition-colors hover:opacity-80"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <Plus className="w-3 h-3" />
-          Add Sub-task
-        </button>
-
-        {/* Toolbar */}
-        <div
-          className="flex items-center justify-between pt-3"
-          style={{ borderTop: "1px solid var(--border)" }}
-        >
-          <div className="flex items-center gap-1">
-            {/* Category dropdown */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "p-1.5 rounded-md transition-colors",
-                    categoryId
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                  )}
-                  title={selectedCategory ? selectedCategory.name : "Category"}
-                >
-                  <Tag className="w-4 h-4" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="rounded-lg p-1 shadow-2xl z-50 min-w-[150px]"
-                  style={{
-                    backgroundColor: "var(--bg-surface)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-primary)",
-                  }}
-                  side="top"
-                  align="start"
-                >
-                  {categories.map((cat) => (
-                    <DropdownMenu.Item
-                      key={cat.id}
-                      onSelect={() => setCategoryId(cat.id)}
-                      className={cn(
-                        "p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]",
-                        categoryId === cat.id && "font-semibold"
-                      )}
-                    >
-                      {cat.icon ? `${cat.icon} ` : ""}
-                      {cat.name}
-                    </DropdownMenu.Item>
-                  ))}
-                  {categories.length > 0 && (
-                    <DropdownMenu.Separator
-                      className="h-px my-1"
-                      style={{ backgroundColor: "var(--border)" }}
-                    />
-                  )}
-                  <DropdownMenu.Item
-                    onSelect={() => setCategoryId(null)}
-                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    No category
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-
-            {/* Date dropdown */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "p-1.5 rounded-md transition-colors",
-                    dueDate
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                  )}
-                  title={dueDate ? format(dueDate, "MMM d") : "Due date"}
-                >
-                  <Calendar className="w-4 h-4" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="rounded-lg p-1 shadow-2xl z-50 min-w-[150px]"
-                  style={{
-                    backgroundColor: "var(--bg-surface)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-primary)",
-                  }}
-                  side="top"
-                  align="start"
-                >
-                  <DropdownMenu.Item
-                    onSelect={() => setDueDate(startOfToday())}
-                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
-                  >
-                    Today
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onSelect={() => setDueDate(startOfTomorrow())}
-                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
-                  >
-                    Tomorrow
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onSelect={() => setDueDate(addDays(new Date(), 7))}
-                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
-                  >
-                    Next Week
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator
-                    className="h-px my-1"
-                    style={{ backgroundColor: "var(--border)" }}
-                  />
-                  <DropdownMenu.Item
-                    onSelect={() => setDueDate(undefined)}
-                    className="p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]"
-                    style={{ color: "var(--danger)" }}
-                  >
-                    Clear
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-
-            {/* Priority dropdown */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "p-1.5 rounded-md transition-colors",
-                    priority !== "none"
-                      ? ""
-                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                  )}
-                  style={
-                    priority !== "none"
-                      ? { color: priorityColors[priority] }
-                      : undefined
-                  }
-                  title={`Priority: ${priority}`}
-                >
-                  <Flag className="w-4 h-4" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="rounded-lg p-1 shadow-2xl z-50 min-w-[150px]"
-                  style={{
-                    backgroundColor: "var(--bg-surface)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-primary)",
-                  }}
-                  side="top"
-                  align="start"
-                >
-                  {(["none", "low", "medium", "high"] as const).map((p) => (
-                    <DropdownMenu.Item
-                      key={p}
-                      onSelect={() => setPriority(p)}
-                      className={cn(
-                        "p-2 rounded cursor-pointer text-xs outline-none hover:bg-[var(--bg-hover)]",
-                        priority === p && "font-semibold"
-                      )}
-                    >
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-          </div>
-
-          {/* Confirm button */}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-105"
-            style={{
-              backgroundColor: "var(--accent)",
-              boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
-            }}
-          >
-            <Check className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={
+              showSubtask ? "Input the sub-task" : "Input new task here"
+            }
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="text-lg w-full outline-none placeholder:text-gray-300"
+          />
+          <button className="text-yellow-500 p-2">
+            <Lightbulb size={24} />
           </button>
         </div>
 
-        {/* Selection indicators */}
-        {(dueDate || categoryId || priority !== "none") && (
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {dueDate && (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: "var(--bg-hover)",
-                  color: "var(--accent)",
-                }}
+        {/* Subtask section */}
+        {showSubtask && (
+          <div className="mb-6 space-y-3">
+            {subtasks.map((st, index) => (
+              <div
+                key={st.id}
+                className="flex items-center gap-3 text-gray-400"
               >
-                {format(dueDate, "MMM d")}
-              </span>
-            )}
-            {selectedCategory && (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: "var(--bg-hover)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {selectedCategory.icon ? `${selectedCategory.icon} ` : ""}
-                {selectedCategory.name}
-              </span>
-            )}
-            {priority !== "none" && (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: "var(--bg-hover)",
-                  color: priorityColors[priority],
-                }}
-              >
-                {priority.charAt(0).toUpperCase() + priority.slice(1)}
-              </span>
-            )}
+                <Circle size={20} strokeWidth={1.5} />
+                <input
+                  type="text"
+                  value={st.text}
+                  onChange={(e) => updateSubtask(st.id, e.target.value)}
+                  placeholder="Input the sub-task"
+                  className="flex-1 text-sm outline-none text-gray-800 placeholder:text-gray-400 bg-transparent"
+                  autoFocus={index === subtasks.length - 1}
+                />
+                <button onClick={() => removeSubtask(st.id)}>
+                  <X size={20} className="text-gray-300" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addSubtask}
+              className="flex items-center gap-3 text-red-500 text-sm font-medium mt-2"
+            >
+              <Plus size={20} />
+              Add Sub-task
+            </button>
           </div>
         )}
+
+        {/* Toolbar */}
+        <div className="flex items-center justify-between">
+          <div className="relative">
+            {/* Category Dropdown */}
+            {showCategory && (
+              <div className="absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl w-48 py-2 animate-in fade-in zoom-in-95 duration-200">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setCategoryId(cat.id);
+                      setShowCategory(false);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-gray-500">
+                      {cat.icon || <Folder size={20} />}
+                    </span>
+                    <span className="text-gray-700 text-sm">{cat.name}</span>
+                  </button>
+                ))}
+                <div className="h-px bg-gray-100 my-1 mx-4" />
+                <button
+                  onClick={() => {
+                    setShowCategory(false);
+                    setCategoryId(null);
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-400">
+                    <Folder size={20} />
+                  </span>
+                  <span className="text-gray-400 text-sm">No Category</span>
+                </button>
+                {onCreateCategory && (
+                  <button
+                    onClick={() => {
+                      setShowCategory(false);
+                      onCreateCategory();
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-gray-400">
+                      <Plus size={20} />
+                    </span>
+                    <span className="text-gray-400 text-sm">Create New</span>
+                  </button>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => setShowCategory(!showCategory)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors ${
+                showCategory
+                  ? "border-2 border-red-500 text-gray-700 bg-white"
+                  : "bg-gray-100 text-gray-600 border-2 border-transparent"
+              }`}
+            >
+              {selectedCategory?.name || "No Category"}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 text-gray-400">
+            <button className="text-red-500">
+              <Clock size={20} />
+            </button>
+            <button>
+              <Bell size={20} />
+            </button>
+            <button>
+              <Repeat size={20} />
+            </button>
+            <button
+              onClick={() => {
+                setShowSubtask(!showSubtask);
+                if (!showSubtask && subtasks.length === 0) {
+                  setSubtasks([{ id: crypto.randomUUID(), text: "" }]);
+                }
+              }}
+              className={showSubtask ? "text-red-500" : ""}
+            >
+              <ListTree size={20} />
+            </button>
+            <button>
+              <Target size={20} />
+            </button>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            className="bg-red-500 text-white p-3 rounded-full shadow-md shadow-red-200"
+          >
+            <CheckCircle2 size={24} className="fill-current text-white" />
+          </button>
+        </div>
       </div>
-    </>
+    </BottomSheet>
   );
 }
