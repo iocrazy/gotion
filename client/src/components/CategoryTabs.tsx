@@ -14,17 +14,17 @@ export function CategoryTabs() {
 
   return (
     <div
-      className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto category-tabs"
-      style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}
+      className="flex items-center gap-2 px-4 py-3 overflow-x-auto category-tabs"
+      style={{ scrollbarWidth: "none" }}
     >
       <style>{`.category-tabs::-webkit-scrollbar { display: none; }`}</style>
       <button
         onClick={() => setSelectedCategoryId(null)}
         className={cn(
-          "px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors shrink-0",
+          "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors shrink-0",
           selectedCategoryId === null
-            ? "bg-[var(--accent)] text-white"
-            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+            ? "bg-red-500 text-white"
+            : "bg-white text-gray-600 shadow-sm hover:bg-gray-50"
         )}
       >
         All
@@ -34,10 +34,10 @@ export function CategoryTabs() {
           key={cat.id}
           onClick={() => setSelectedCategoryId(cat.id)}
           className={cn(
-            "px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors shrink-0",
+            "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors shrink-0",
             selectedCategoryId === cat.id
-              ? "bg-[var(--accent)] text-white"
-              : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+              ? "bg-red-500 text-white"
+              : "bg-white text-gray-600 shadow-sm hover:bg-gray-50"
           )}
         >
           {cat.icon ? `${cat.icon} ` : ""}{cat.name}

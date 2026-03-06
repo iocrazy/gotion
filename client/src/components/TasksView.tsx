@@ -1,6 +1,16 @@
+import { useState } from "react";
 import { Menu, Search, MoreHorizontal, Plus } from "lucide-react";
 import { CategoryTabs } from "./CategoryTabs";
 import { TaskList } from "./TaskList";
+import { MoreOptionsMenu } from "./MoreOptionsMenu";
+
+type SortOption =
+  | "due_date"
+  | "creation_time"
+  | "alphabetical_az"
+  | "alphabetical_za"
+  | "manual"
+  | "flag_color";
 
 interface TasksViewProps {
   onAdd: () => void;
@@ -9,6 +19,9 @@ interface TasksViewProps {
 }
 
 export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("creation_time");
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
@@ -21,7 +34,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
           <button onClick={onSearch} className="text-gray-400">
             <Search size={20} />
           </button>
-          <button className="text-gray-400">
+          <button onClick={() => setShowMoreOptions(true)} className="text-gray-400">
             <MoreHorizontal size={20} />
           </button>
         </div>
@@ -34,6 +47,15 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         <TaskList />
       </div>
+
+      {/* More options menu */}
+      {showMoreOptions && (
+        <MoreOptionsMenu
+          onClose={() => setShowMoreOptions(false)}
+          currentSort={sortBy}
+          onSortChange={(sort) => { setSortBy(sort); setShowMoreOptions(false); }}
+        />
+      )}
 
       {/* FAB */}
       <button
