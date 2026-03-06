@@ -1,102 +1,235 @@
+import { useState, useEffect, useRef } from "react";
+import {
+  motion,
+  useAnimation,
+  useMotionValue,
+  useTransform,
+} from "motion/react";
+import type { PanInfo } from "motion/react";
+import {
+  Circle,
+  CheckCircle2,
+  Trash2,
+  Star,
+  BellOff,
+  Calendar,
+  Hourglass,
+  Flag,
+} from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
-import { useCategoryStore } from "../stores/categoryStore";
-import { Check, Trash2 } from "lucide-react";
-import { cn } from "../lib/utils";
 import { format, isSameYear } from "date-fns";
 import type { Task } from "../lib/api";
+
+const SubtaskIcon = ({
+  size = 14,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="7" cy="5" r="2" fill="currentColor" />
+    <path d="M7 7v12h10" />
+    <path d="M7 13h10" />
+  </svg>
+);
 
 interface TaskItemProps {
   task: Task;
   subTaskCount?: { done: number; total: number };
+  onClick: () => void;
 }
 
-const PRIORITY_COLORS: Record<string, string> = {
-  high: "var(--danger)",
-  medium: "var(--warn)",
-  low: "#3B82F6",
-};
+export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
+  const { toggleTaskStatus, deleteTask, updateTask } = useTaskStore();
+  const [isCompleted, setIsCompleted] = useState(task.status === "done");
+  const controls = useAnimation();
+  const dragRef = useRef(false);
+  const x = useMotionValue(0);
 
-function parsePriority(title: string): { priority: "high" | "medium" | "low" | "none"; cleanTitle: string } {
-  if (title.startsWith("!!! ")) return { priority: "high", cleanTitle: title.slice(4) };
-  if (title.startsWith("!! ")) return { priority: "medium", cleanTitle: title.slice(3) };
-  if (title.startsWith("! ")) return { priority: "low", cleanTitle: title.slice(2) };
-  return { priority: "none", cleanTitle: title };
-}
+  const scaleTrash = useTransform(x, [0, -56], [0, 1]);
+  const scaleHourglass = useTransform(x, [-46, -104], [0, 1]);
+  const scaleCalendar = useTransform(x, [-94, -152], [0, 1]);
+  const scaleBellOff = useTransform(x, [-142, -200], [0, 1]);
+  const scaleStar = useTransform(x, [-190, -248], [0, 1]);
 
-export function TaskItem({ task, subTaskCount }: TaskItemProps) {
-  const { toggleTaskStatus, selectTask, selectedTaskId, deleteTask } = useTaskStore();
-  const categories = useCategoryStore((s) => s.categories);
-  const isDone = task.status === "done";
-  const isSelected = selectedTaskId === task.id;
-  const { priority, cleanTitle } = parsePriority(task.title);
-  const category = task.category_id ? categories.find((c) => c.id === task.category_id) : null;
+  useEffect(() => {
+    setIsCompleted(task.status === "done");
+  }, [task.status]);
+
+  const handleComplete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newState = !isCompleted;
+    setIsCompleted(newState);
+    setTimeout(() => {
+      toggleTaskStatus(task.id);
+    }, 600);
+  };
+
+  const handleDragStart = () => {
+    dragRef.current = true;
+  };
+
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
+    setTimeout(() => {
+      dragRef.current = false;
+    }, 100);
+
+    if (info.offset.x < -100 || info.velocity.x < -500) {
+      controls.start({ x: -280 });
+    } else {
+      controls.start({ x: 0 });
+    }
+  };
+
+  const handleClick = () => {
+    if (!dragRef.current) {
+      onClick();
+    }
+  };
+
+  const handleToggleStar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateTask(task.id, { starred: !task.starred });
+    controls.start({ x: 0 });
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteTask(task.id);
+    controls.start({ x: 0 });
+  };
 
   const formatDateDisplay = (dateStr: string) => {
     const date = new Date(dateStr + "T00:00:00");
     const now = new Date();
-    return isSameYear(date, now) ? format(date, "MMM d") : format(date, "MMM d, yyyy");
+    return isSameYear(date, now)
+      ? format(date, "MM/dd")
+      : format(date, "MM/dd/yyyy");
   };
 
-  const meta: string[] = [];
-  if (task.due_date) meta.push(formatDateDisplay(task.due_date));
-  if (category) meta.push(category.name);
-  if (subTaskCount && subTaskCount.total > 0) meta.push(`${subTaskCount.done}/${subTaskCount.total}`);
-
   return (
-    <div
-      onClick={() => selectTask(task.id)}
-      className={cn(
-        "group flex items-start py-2 px-3 cursor-default transition-colors relative",
-        isSelected && "bg-[var(--accent-dim)]",
-        !isSelected && "hover:bg-[var(--bg-hover)]"
-      )}
-      style={{ borderBottom: "1px solid var(--border)" }}
-    >
-      {/* Priority bar */}
-      {priority !== "none" && (
-        <div
-          className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r"
-          style={{ backgroundColor: PRIORITY_COLORS[priority] }}
-        />
-      )}
+    <div className="relative mb-3">
+      {/* Background Actions */}
+      <div className="absolute inset-0 flex items-center justify-end pr-2 gap-2 bg-[#F5F6F8] rounded-2xl overflow-hidden">
+        <motion.button
+          style={{ scale: scaleStar }}
+          onClick={handleToggleStar}
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors ${
+            task.starred ? "bg-yellow-400" : "bg-red-200"
+          }`}
+        >
+          <Star size={18} className={task.starred ? "fill-white" : ""} />
+        </motion.button>
+        <motion.button
+          style={{ scale: scaleBellOff }}
+          className="w-10 h-10 bg-red-300 rounded-full flex items-center justify-center text-white"
+        >
+          <BellOff size={18} />
+        </motion.button>
+        <motion.button
+          style={{ scale: scaleCalendar }}
+          className="w-10 h-10 bg-red-400 rounded-full flex items-center justify-center text-white"
+        >
+          <Calendar size={18} />
+        </motion.button>
+        <motion.button
+          style={{ scale: scaleHourglass }}
+          className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white"
+        >
+          <Hourglass size={18} />
+        </motion.button>
+        <motion.button
+          style={{ scale: scaleTrash }}
+          onClick={handleDelete}
+          className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white"
+        >
+          <Trash2 size={18} />
+        </motion.button>
+      </div>
 
-      {/* Checkbox */}
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleTaskStatus(task.id); }}
-        className={cn(
-          "w-[18px] h-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-all shrink-0 mr-2.5 mt-0.5",
-          isDone
-            ? "bg-[var(--accent)] border-[var(--accent)]"
-            : "border-[var(--text-muted)] hover:border-[var(--accent)]"
-        )}
+      {/* Foreground Task */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -280, right: 0 }}
+        dragElastic={0.1}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        className="relative bg-white rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer"
+        onClick={handleClick}
       >
-        {isDone && <Check className="w-2.5 h-2.5 text-white" />}
-      </button>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <span
-          className={cn("block text-sm truncate", isDone && "line-through")}
-          style={{ color: isDone ? "var(--text-muted)" : "var(--text-primary)" }}
-        >
-          {cleanTitle}
-        </span>
-        {meta.length > 0 && (
-          <span className="block text-[11px] mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>
-            {meta.join(" \u00B7 ")}
-          </span>
-        )}
-      </div>
-
-      {/* Hover actions */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2 mt-0.5">
         <button
-          onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-          className="p-1 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--danger)]"
+          className="mt-0.5 text-gray-300 relative"
+          onClick={handleComplete}
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          {isCompleted ? (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <CheckCircle2
+                size={24}
+                className="text-gray-400 fill-gray-200"
+              />
+            </motion.div>
+          ) : (
+            <Circle size={24} strokeWidth={1.5} />
+          )}
         </button>
-      </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`font-medium ${
+                isCompleted
+                  ? "text-gray-400 line-through"
+                  : "text-gray-800"
+              }`}
+            >
+              {task.title}
+            </span>
+            {task.starred && (
+              <Star
+                size={14}
+                className="fill-yellow-400 text-yellow-400"
+              />
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            {task.due_date && (
+              <span className="text-[#D31F26] font-medium text-[13px]">
+                {formatDateDisplay(task.due_date)}
+              </span>
+            )}
+            {subTaskCount && subTaskCount.total > 0 && (
+              <div className="flex items-center gap-1 text-gray-400">
+                <SubtaskIcon size={14} className="text-gray-400" />
+                <span className="text-[13px]">
+                  {subTaskCount.done}/{subTaskCount.total}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        <button className="text-gray-300">
+          <Flag size={20} strokeWidth={1.5} />
+        </button>
+      </motion.div>
     </div>
   );
 }

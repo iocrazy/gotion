@@ -5,6 +5,7 @@ import type { Task } from "../lib/api";
 
 export function TaskList() {
   const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
+  const selectTask = useTaskStore((s) => s.selectTask);
 
   useEffect(() => {
     fetchTasks();
@@ -63,14 +64,25 @@ export function TaskList() {
         else groups["Upcoming"].push(task);
       });
     } else if (groupBy === "status") {
-      groups["Other"] = [];
-      groups["Complete"] = [];
+      groups["Today"] = [];
+      groups["Future"] = [];
+      groups["Completed Today"] = [];
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       filteredTasks.forEach((task) => {
         if (task.status === "done") {
-          groups["Complete"].push(task);
+          groups["Completed Today"].push(task);
+        } else if (
+          !task.due_date ||
+          new Date(task.due_date + "T00:00:00") <= tomorrow
+        ) {
+          groups["Today"].push(task);
         } else {
-          groups["Other"].push(task);
+          groups["Future"].push(task);
         }
       });
     } else if (groupBy === "priority") {
@@ -113,18 +125,18 @@ export function TaskList() {
         if (groupTasks.length === 0) return null;
         return (
           <div key={group}>
-            <div
-              className="text-[10px] font-medium uppercase tracking-wider px-3 py-2 sticky top-0 z-10"
-              style={{
-                color: "var(--text-muted)",
-                backgroundColor: "var(--bg-base)",
-              }}
-            >
-              {group}
+            <div className="flex items-center justify-between px-1 pt-4 pb-2">
+              <h3 className="text-gray-400 text-sm font-medium">{group}</h3>
+              <span className="text-gray-300 text-xs">{groupTasks.length}</span>
             </div>
             <div>
               {groupTasks.map((task) => (
-                <TaskItem key={task.id} task={task} subTaskCount={subTaskCounts[task.id]} />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  subTaskCount={subTaskCounts[task.id]}
+                  onClick={() => selectTask(task.id)}
+                />
               ))}
             </div>
           </div>
