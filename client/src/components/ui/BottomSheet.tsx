@@ -36,7 +36,7 @@ export function BottomSheet({
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={`absolute bottom-0 left-0 right-0 ${
               fullHeight ? "top-12" : ""
-            } bg-white rounded-t-3xl flex flex-col overflow-hidden ${className}`}
+            } bg-white rounded-t-3xl flex flex-col ${className}`}
             style={{ zIndex: zLevel }}
           >
             {children}

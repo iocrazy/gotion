@@ -106,54 +106,6 @@ export function AddTaskPanel({ open, onClose, onCreateCategory }: AddTaskPanelPr
           </button>
         </div>
 
-        {/* Category selection list */}
-        {showCategory && (
-          <div className="mb-4 bg-gray-50 rounded-2xl py-2 max-h-48 overflow-y-auto">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setCategoryId(cat.id);
-                  setShowCategory(false);
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors"
-              >
-                <span className="text-gray-500">
-                  {cat.icon ? <CategoryIcon icon={cat.icon} size={20} /> : <Folder size={20} />}
-                </span>
-                <span className="text-gray-700 text-sm">{cat.name}</span>
-              </button>
-            ))}
-            <div className="h-px bg-gray-200 my-1 mx-4" />
-            <button
-              onClick={() => {
-                setShowCategory(false);
-                setCategoryId(null);
-              }}
-              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-gray-400">
-                <Folder size={20} />
-              </span>
-              <span className="text-gray-400 text-sm">No Category</span>
-            </button>
-            {onCreateCategory && (
-              <button
-                onClick={() => {
-                  setShowCategory(false);
-                  onCreateCategory();
-                }}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors"
-              >
-                <span className="text-gray-400">
-                  <Plus size={20} />
-                </span>
-                <span className="text-gray-400 text-sm">Create New</span>
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Subtask section */}
         {showSubtask && (
           <div className="mb-6 space-y-3">
@@ -188,16 +140,65 @@ export function AddTaskPanel({ open, onClose, onCreateCategory }: AddTaskPanelPr
 
         {/* Toolbar */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowCategory(!showCategory)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors ${
-              showCategory
-                ? "border-2 border-red-500 text-gray-700 bg-white"
-                : "bg-gray-100 text-gray-600 border-2 border-transparent"
-            }`}
-          >
-            {selectedCategory?.name || "No Category"}
-          </button>
+          <div className="relative">
+            {/* Category Dropdown - floats above toolbar */}
+            {showCategory && (
+              <div className="absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl w-48 py-2 animate-in fade-in zoom-in-95 duration-200">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setCategoryId(cat.id);
+                      setShowCategory(false);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-gray-500">
+                      {cat.icon ? <CategoryIcon icon={cat.icon} size={20} /> : <Folder size={20} />}
+                    </span>
+                    <span className="text-gray-700 text-sm">{cat.name}</span>
+                  </button>
+                ))}
+                <div className="h-px bg-gray-100 my-1 mx-4" />
+                <button
+                  onClick={() => {
+                    setShowCategory(false);
+                    setCategoryId(null);
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-400">
+                    <Folder size={20} />
+                  </span>
+                  <span className="text-gray-400 text-sm">No Category</span>
+                </button>
+                {onCreateCategory && (
+                  <button
+                    onClick={() => {
+                      setShowCategory(false);
+                      onCreateCategory();
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-gray-400">
+                      <Plus size={20} />
+                    </span>
+                    <span className="text-gray-400 text-sm">Create New</span>
+                  </button>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => setShowCategory(!showCategory)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors ${
+                showCategory
+                  ? "border-2 border-red-500 text-gray-700 bg-white"
+                  : "bg-gray-100 text-gray-600 border-2 border-transparent"
+              }`}
+            >
+              {selectedCategory?.name || "No Category"}
+            </button>
+          </div>
 
           <div className="flex items-center gap-4 text-gray-400">
             <button className="text-red-500">
