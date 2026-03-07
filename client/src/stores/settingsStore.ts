@@ -21,7 +21,7 @@ function applyTheme(theme: Theme) {
 export const useSettingsStore = create<SettingsState>((set) => ({
   serverUrl: "http://localhost:3001",
   bgOpacity: 1.0,
-  theme: "dark",
+  theme: "light",
   loaded: false,
 
   loadSettings: async () => {
@@ -42,7 +42,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         set({ loaded: true });
       }
     } else {
-      set({ loaded: true });
+      applyTheme("light");
+      set({ theme: "light", loaded: true });
     }
   },
 
