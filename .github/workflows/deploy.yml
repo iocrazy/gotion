@@ -60,4 +60,4 @@ jobs:
             sudo docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             cd ${{ secrets.NAS_DEPLOY_PATH }}
             sudo docker compose up -d --force-recreate
-            sudo docker image prune -f
+            sudo docker image prune -f || true
