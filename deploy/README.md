@@ -23,21 +23,13 @@
    scp deploy/docker-compose.nas.yml your-user@your-nas:/volume1/docker/gotion/docker-compose.yml
    ```
 
-4. Create `.env` file on NAS:
-   ```bash
-   cat > /volume1/docker/gotion/.env << 'EOF'
-   NOTION_TOKEN=your_notion_integration_token
-   NOTION_DATABASE_ID=your_database_id
-   EOF
-   ```
-
-5. Log in to GHCR on NAS:
+4. Log in to GHCR on NAS:
    ```bash
    echo "YOUR_GITHUB_PAT" | docker login ghcr.io -u iocrazy --password-stdin
    ```
    (Create a PAT at github.com → Settings → Developer settings → Personal access tokens → with `read:packages` scope)
 
-6. Start the service:
+5. Start the service (Notion config is set via the app's Settings UI, no .env needed):
    ```bash
    cd /volume1/docker/gotion
    docker compose up -d

@@ -7,8 +7,6 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: sqlite:/data/gotion.db?mode=rwc
-      NOTION_TOKEN: ${NOTION_TOKEN:-}
-      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
       RUST_LOG: info
     volumes:
       - server-data:/data
