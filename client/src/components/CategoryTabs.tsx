@@ -15,7 +15,7 @@ export function CategoryTabs() {
 
   return (
     <div
-      className="flex items-center gap-2 px-4 py-3 overflow-x-auto shrink-0 category-tabs"
+      className="flex items-center gap-2 px-4 py-3 overflow-x-auto shrink-0 min-w-0 w-full category-tabs"
       style={{ scrollbarWidth: "none" }}
     >
       <style>{`.category-tabs::-webkit-scrollbar { display: none; }`}</style>
