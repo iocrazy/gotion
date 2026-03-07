@@ -62,8 +62,8 @@ export function TaskDetailView() {
     updateTask(task.id, { status: done ? "done" : "todo" });
   };
 
-  const handleAddSubtask = () => {
-    createTask("New sub-task", { parent_id: task.id });
+  const handleAddSubtask = async () => {
+    await createTask("", { parent_id: task.id });
   };
 
   const formatDateDisplay = (dateStr: string) => {
@@ -135,8 +135,12 @@ export function TaskDetailView() {
           />
 
           <div className="space-y-4 mb-8 flex-1">
-            {subtasks.map((st) => (
-              <SubTaskItem key={st.id} task={st} />
+            {subtasks.map((st, i) => (
+              <SubTaskItem
+                key={st.id}
+                task={st}
+                autoFocus={i === subtasks.length - 1 && !st.title}
+              />
             ))}
           </div>
 

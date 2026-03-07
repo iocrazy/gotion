@@ -1,16 +1,24 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Circle, CheckCircle2, Menu } from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
 import type { Task } from "../lib/api";
 
 interface SubTaskItemProps {
   task: Task;
+  autoFocus?: boolean;
 }
 
-export function SubTaskItem({ task }: SubTaskItemProps) {
+export function SubTaskItem({ task, autoFocus }: SubTaskItemProps) {
   const { updateTask, toggleTaskStatus } = useTaskStore();
   const [title, setTitle] = useState(task.title);
   const isDone = task.status === "done";
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   const handleBlur = () => {
     if (title !== task.title && title.trim()) {
@@ -31,6 +39,7 @@ export function SubTaskItem({ task }: SubTaskItemProps) {
         )}
       </button>
       <input
+        ref={inputRef}
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
