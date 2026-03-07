@@ -48,7 +48,7 @@ export function CalendarView({ onSearch, onMenuClick }: CalendarViewProps) {
   const { tasks, selectTask } = useTaskStore();
   const today = useMemo(() => new Date(), []);
 
-  const { daysInMonth, firstDayOfMonth, days, emptyDays } = useMemo(() => {
+  const { days, emptyDays } = useMemo(() => {
     const dim = new Date(
       viewMonth.getFullYear(),
       viewMonth.getMonth() + 1,

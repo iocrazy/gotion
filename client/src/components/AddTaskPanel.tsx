@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus,
-  Check,
   Circle,
   X,
   Clock,
@@ -12,12 +11,7 @@ import {
   Lightbulb,
   CheckCircle2,
   Folder,
-  Briefcase,
-  Coffee,
-  Heart,
-  Cake,
 } from "lucide-react";
-import { format } from "date-fns";
 import { useTaskStore } from "../stores/taskStore";
 import { useCategoryStore } from "../stores/categoryStore";
 import { BottomSheet } from "./ui/BottomSheet";
