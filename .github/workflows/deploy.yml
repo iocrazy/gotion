@@ -47,14 +47,17 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy to NAS via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.NAS_HOST }}
+          port: ${{ secrets.NAS_SSH_PORT }}
           username: ${{ secrets.NAS_USER }}
           key: ${{ secrets.NAS_SSH_KEY }}
-          port: ${{ secrets.NAS_SSH_PORT }}
+          command_timeout: 30m
           script: |
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            set -e
+            export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+            sudo docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             cd ${{ secrets.NAS_DEPLOY_PATH }}
-            docker compose up -d --force-recreate
-            docker image prune -f
+            sudo docker compose up -d --force-recreate
+            sudo docker image prune -f
