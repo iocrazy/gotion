@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, Search, MoreHorizontal, Plus } from "lucide-react";
+import { Menu, Search, MoreHorizontal, Plus, Pin } from "lucide-react";
 import { CategoryTabs } from "./CategoryTabs";
 import { TaskList } from "./TaskList";
 import { MoreOptionsMenu } from "./MoreOptionsMenu";
@@ -22,6 +22,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("creation_time");
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [pinnedOnly, setPinnedOnly] = useState(false);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -32,6 +33,12 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
         </button>
         <h1 className="text-xl font-semibold text-gray-800">All Tasks</h1>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setPinnedOnly(!pinnedOnly)}
+            className={pinnedOnly ? "text-red-500" : "text-gray-400"}
+          >
+            <Pin size={20} />
+          </button>
           <button onClick={onSearch} className="text-gray-400">
             <Search size={20} />
           </button>
@@ -46,7 +53,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} />
+        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} pinnedOnly={pinnedOnly} />
       </div>
 
       {/* More options menu */}

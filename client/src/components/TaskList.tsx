@@ -14,9 +14,10 @@ type SortOption =
 interface TaskListProps {
   showSubtasks?: boolean;
   sortBy?: SortOption;
+  pinnedOnly?: boolean;
 }
 
-export function TaskList({ showSubtasks = false, sortBy = "creation_time" }: TaskListProps) {
+export function TaskList({ showSubtasks = false, sortBy = "creation_time", pinnedOnly = false }: TaskListProps) {
   const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
   const selectTask = useTaskStore((s) => s.selectTask);
 
@@ -27,9 +28,12 @@ export function TaskList({ showSubtasks = false, sortBy = "creation_time" }: Tas
   // Filter out sub-tasks and apply category filter
   const filteredTasks = useMemo(() => {
     return tasks.filter(
-      (t) => !t.parent_id && (!selectedCategoryId || t.category_id === selectedCategoryId)
+      (t) =>
+        !t.parent_id &&
+        (!selectedCategoryId || t.category_id === selectedCategoryId) &&
+        (!pinnedOnly || t.starred)
     );
-  }, [tasks, selectedCategoryId]);
+  }, [tasks, selectedCategoryId, pinnedOnly]);
 
   // Compute sub-task counts and group subtasks by parent
   const { subTaskCounts, subTasksByParent } = useMemo(() => {
