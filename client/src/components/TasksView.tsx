@@ -46,7 +46,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <TaskList showSubtasks={showSubtasks} />
+        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} />
       </div>
 
       {/* More options menu */}

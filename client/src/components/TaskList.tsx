@@ -3,11 +3,20 @@ import { useTaskStore } from "../stores/taskStore";
 import { TaskItem } from "./TaskItem";
 import type { Task } from "../lib/api";
 
+type SortOption =
+  | "due_date"
+  | "creation_time"
+  | "alphabetical_az"
+  | "alphabetical_za"
+  | "manual"
+  | "flag_color";
+
 interface TaskListProps {
   showSubtasks?: boolean;
+  sortBy?: SortOption;
 }
 
-export function TaskList({ showSubtasks = false }: TaskListProps) {
+export function TaskList({ showSubtasks = false, sortBy = "creation_time" }: TaskListProps) {
   const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
   const selectTask = useTaskStore((s) => s.selectTask);
 
@@ -44,6 +53,33 @@ export function TaskList({ showSubtasks = false }: TaskListProps) {
     return { subTaskCounts: counts, subTasksByParent: byParent };
   }, [tasks]);
 
+  const sortedTasks = useMemo(() => {
+    const sorted = [...filteredTasks];
+    switch (sortBy) {
+      case "due_date":
+        sorted.sort((a, b) => {
+          if (!a.due_date && !b.due_date) return 0;
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return a.due_date.localeCompare(b.due_date);
+        });
+        break;
+      case "creation_time":
+        sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+        break;
+      case "alphabetical_az":
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "alphabetical_za":
+        sorted.sort((a, b) => b.title.localeCompare(a.title));
+        break;
+      case "manual":
+        sorted.sort((a, b) => a.sort_order - b.sort_order);
+        break;
+    }
+    return sorted;
+  }, [filteredTasks, sortBy]);
+
   const groupedTasks = useMemo(() => {
     const groups: Record<string, Task[]> = {};
 
@@ -61,7 +97,7 @@ export function TaskList({ showSubtasks = false }: TaskListProps) {
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
 
-      filteredTasks.forEach((task) => {
+      sortedTasks.forEach((task) => {
         if (!task.due_date) {
           groups["No Date"].push(task);
           return;
@@ -82,7 +118,7 @@ export function TaskList({ showSubtasks = false }: TaskListProps) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      filteredTasks.forEach((task) => {
+      sortedTasks.forEach((task) => {
         if (task.status === "done") {
           groups["Completed Today"].push(task);
         } else if (
@@ -100,7 +136,7 @@ export function TaskList({ showSubtasks = false }: TaskListProps) {
       groups["Low"] = [];
       groups["None"] = [];
 
-      filteredTasks.forEach((task) => {
+      sortedTasks.forEach((task) => {
         const title = task.title;
         if (title.startsWith("!!! ")) groups["High"].push(task);
         else if (title.startsWith("!! ")) groups["Medium"].push(task);
@@ -110,7 +146,7 @@ export function TaskList({ showSubtasks = false }: TaskListProps) {
     }
 
     return groups;
-  }, [filteredTasks, groupBy]);
+  }, [sortedTasks, groupBy]);
 
   if (loading && tasks.length === 0) {
     return (
