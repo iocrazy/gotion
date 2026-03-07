@@ -1,6 +1,7 @@
 import { X, Folder } from "lucide-react";
 import { BottomSheet } from "./ui/BottomSheet";
 import { useCategoryStore } from "../stores/categoryStore";
+import { CategoryIcon } from "../lib/categoryIcons";
 
 interface CategoryPickerModalProps {
   open: boolean;
@@ -55,7 +56,7 @@ export function CategoryPickerModal({
                 style={{ backgroundColor: cat.color }}
               />
             ) : null}
-            <span className="text-xl">{cat.icon || "📁"}</span>
+            <CategoryIcon icon={cat.icon} size={20} className="text-gray-600" />
             <span className="text-gray-800 text-[15px]">{cat.name}</span>
           </button>
         ))}

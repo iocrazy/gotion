@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { cn } from "../lib/utils";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useTaskStore } from "../stores/taskStore";
+import { CategoryIcon } from "../lib/categoryIcons";
 
 export function CategoryTabs() {
   const { categories, fetchCategories } = useCategoryStore();
@@ -40,7 +41,10 @@ export function CategoryTabs() {
               : "bg-white text-gray-600 shadow-sm hover:bg-gray-50"
           )}
         >
-          {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+          <span className="flex items-center gap-1.5">
+            {cat.icon && <CategoryIcon icon={cat.icon} size={16} />}
+            {cat.name}
+          </span>
         </button>
       ))}
     </div>
