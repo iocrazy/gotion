@@ -19,7 +19,7 @@ function applyTheme(theme: Theme) {
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
-  serverUrl: "http://localhost:3001",
+  serverUrl: import.meta.env.VITE_SERVER_URL || "https://gotion.heygo.cn:88",
   bgOpacity: 1.0,
   theme: "light",
   loaded: false,
@@ -42,14 +42,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         set({ loaded: true });
       }
     } else {
+      const savedUrl = localStorage.getItem("gotion_serverUrl");
       applyTheme("light");
-      set({ theme: "light", loaded: true });
+      set({
+        theme: "light",
+        loaded: true,
+        ...(savedUrl ? { serverUrl: savedUrl } : {}),
+      });
     }
   },
 
   setServerUrl: async (url: string) => {
     const cleaned = url.replace(/\/+$/, "");
     set({ serverUrl: cleaned });
+    if (!isTauri()) {
+      localStorage.setItem("gotion_serverUrl", cleaned);
+    }
     if (isTauri()) {
       try {
         await tauriInvoke("save_settings", {
