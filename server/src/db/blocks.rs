@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
 use gotion_shared::models::Block;
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use uuid::Uuid;
 
 /// Database row representation for the blocks table.
 #[derive(Debug, sqlx::FromRow)]
 struct BlockRow {
-    id: Uuid,
-    task_id: Uuid,
+    id: String,
+    task_id: String,
     notion_block_id: Option<String>,
     block_type: String,
     content: serde_json::Value,
@@ -18,8 +18,8 @@ struct BlockRow {
 impl From<BlockRow> for Block {
     fn from(row: BlockRow) -> Self {
         Block {
-            id: row.id,
-            task_id: row.task_id,
+            id: row.id.parse().unwrap_or_default(),
+            task_id: row.task_id.parse().unwrap_or_default(),
             notion_block_id: row.notion_block_id,
             block_type: row.block_type,
             content: row.content,
@@ -30,13 +30,13 @@ impl From<BlockRow> for Block {
 }
 
 /// Get all blocks for a task, ordered by sort_order.
-pub async fn get_blocks(pool: &PgPool, task_id: Uuid) -> Result<Vec<Block>, sqlx::Error> {
+pub async fn get_blocks(pool: &SqlitePool, task_id: Uuid) -> Result<Vec<Block>, sqlx::Error> {
     let rows = sqlx::query_as::<_, BlockRow>(
         "SELECT id, task_id, notion_block_id, block_type, content, sort_order, updated_at \
-         FROM blocks WHERE task_id = $1 \
+         FROM blocks WHERE task_id = ? \
          ORDER BY sort_order ASC",
     )
-    .bind(task_id)
+    .bind(task_id.to_string())
     .fetch_all(pool)
     .await?;
 
@@ -46,15 +46,15 @@ pub async fn get_blocks(pool: &PgPool, task_id: Uuid) -> Result<Vec<Block>, sqlx
 /// Replace all blocks for a task within a transaction:
 /// delete existing blocks, insert new ones, return them.
 pub async fn replace_blocks(
-    pool: &PgPool,
+    pool: &SqlitePool,
     task_id: Uuid,
     blocks: Vec<Block>,
 ) -> Result<Vec<Block>, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     // Delete all existing blocks for this task
-    sqlx::query("DELETE FROM blocks WHERE task_id = $1")
-        .bind(task_id)
+    sqlx::query("DELETE FROM blocks WHERE task_id = ?")
+        .bind(task_id.to_string())
         .execute(&mut *tx)
         .await?;
 
@@ -64,11 +64,11 @@ pub async fn replace_blocks(
     for (i, block) in blocks.into_iter().enumerate() {
         let row = sqlx::query_as::<_, BlockRow>(
             "INSERT INTO blocks (id, task_id, notion_block_id, block_type, content, sort_order, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7) \
+             VALUES (?, ?, ?, ?, ?, ?, ?) \
              RETURNING id, task_id, notion_block_id, block_type, content, sort_order, updated_at",
         )
-        .bind(block.id)
-        .bind(task_id)
+        .bind(block.id.to_string())
+        .bind(task_id.to_string())
         .bind(&block.notion_block_id)
         .bind(&block.block_type)
         .bind(&block.content)

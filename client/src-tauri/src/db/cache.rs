@@ -56,6 +56,7 @@ impl CacheDb {
         let _ = conn.execute("ALTER TABLE tasks ADD COLUMN category_id TEXT", []);
         let _ = conn.execute("ALTER TABLE tasks ADD COLUMN parent_id TEXT", []);
         let _ = conn.execute("ALTER TABLE tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0", []);
+        let _ = conn.execute("ALTER TABLE tasks ADD COLUMN notion_status TEXT", []);
 
         Ok(Self { conn: Mutex::new(conn) })
     }
@@ -68,7 +69,7 @@ impl CacheDb {
 
         for task in &tasks {
             conn.execute(
-                "INSERT OR REPLACE INTO tasks (id, title, status, due_date, updated_at, is_dirty, category_id, parent_id, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8)",
+                "INSERT OR REPLACE INTO tasks (id, title, status, due_date, updated_at, is_dirty, category_id, parent_id, sort_order, notion_status) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9)",
                 params![
                     task["id"].as_str().unwrap_or(""),
                     task["title"].as_str().unwrap_or(""),
@@ -78,6 +79,7 @@ impl CacheDb {
                     task["category_id"].as_str(),
                     task["parent_id"].as_str(),
                     task["sort_order"].as_i64().unwrap_or(0),
+                    task["notion_status"].as_str(),
                 ],
             ).map_err(|e| e.to_string())?;
         }
@@ -88,7 +90,7 @@ impl CacheDb {
     pub fn get_cached_tasks(&self) -> Result<String, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn.prepare(
-            "SELECT id, title, status, due_date, updated_at, category_id, parent_id, sort_order FROM tasks ORDER BY sort_order ASC, due_date ASC"
+            "SELECT id, title, status, due_date, updated_at, category_id, parent_id, sort_order, notion_status FROM tasks ORDER BY sort_order ASC, due_date ASC"
         ).map_err(|e| e.to_string())?;
 
         let tasks: Vec<serde_json::Value> = stmt.query_map([], |row| {
@@ -101,6 +103,7 @@ impl CacheDb {
                 "category_id": row.get::<_, Option<String>>(5)?,
                 "parent_id": row.get::<_, Option<String>>(6)?,
                 "sort_order": row.get::<_, i64>(7)?,
+                "notion_status": row.get::<_, Option<String>>(8)?,
             }))
         }).map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())

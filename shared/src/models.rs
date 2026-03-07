@@ -26,6 +26,7 @@ pub struct Task {
     pub sort_order: i32,
     pub starred: bool,
     pub starred_updated_at: Option<DateTime<Utc>>,
+    pub notion_status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

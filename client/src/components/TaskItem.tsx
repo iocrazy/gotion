@@ -19,6 +19,7 @@ import {
 import { useTaskStore } from "../stores/taskStore";
 import { format, isSameYear } from "date-fns";
 import type { Task } from "../lib/api";
+import { DatePickerModal } from "./DatePickerModal";
 
 const SubtaskIcon = ({
   size = 14,
@@ -53,6 +54,7 @@ interface TaskItemProps {
 export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
   const { toggleTaskStatus, deleteTask, updateTask } = useTaskStore();
   const [isCompleted, setIsCompleted] = useState(task.status === "done");
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const controls = useAnimation();
   const dragRef = useRef(false);
   const x = useMotionValue(0);
@@ -113,6 +115,16 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
     controls.start({ x: 0 });
   };
 
+  const handleCalendar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    controls.start({ x: 0 });
+    setShowDatePicker(true);
+  };
+
+  const handleDateSelect = (date: string | null) => {
+    updateTask(task.id, { due_date: date });
+  };
+
   const formatDateDisplay = (dateStr: string) => {
     const date = new Date(dateStr + "T00:00:00");
     const now = new Date();
@@ -142,6 +154,7 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
         </motion.button>
         <motion.button
           style={{ scale: scaleCalendar }}
+          onClick={handleCalendar}
           className="w-10 h-10 bg-red-400 rounded-full flex items-center justify-center text-white"
         >
           <Calendar size={18} />
@@ -230,6 +243,13 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
           <Flag size={20} strokeWidth={1.5} />
         </button>
       </motion.div>
+
+      <DatePickerModal
+        open={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        currentDate={task.due_date}
+        onDateSelect={handleDateSelect}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useTaskStore } from "../stores/taskStore";
 import { TaskItem } from "./TaskItem";
 import type { Task } from "../lib/api";
+import type { StatusFilter } from "./MoreOptionsMenu";
 
 type SortOption =
   | "due_date"
@@ -14,9 +15,10 @@ type SortOption =
 interface TaskListProps {
   showSubtasks?: boolean;
   sortBy?: SortOption;
+  statusFilter?: StatusFilter;
 }
 
-export function TaskList({ showSubtasks = false, sortBy = "creation_time" }: TaskListProps) {
+export function TaskList({ showSubtasks = false, sortBy = "creation_time", statusFilter = [] }: TaskListProps) {
   const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
   const selectTask = useTaskStore((s) => s.selectTask);
 
@@ -24,12 +26,23 @@ export function TaskList({ showSubtasks = false, sortBy = "creation_time" }: Tas
     fetchTasks();
   }, [fetchTasks]);
 
-  // Filter out sub-tasks and apply category filter
+  // Filter out sub-tasks and apply category + status filter
   const filteredTasks = useMemo(() => {
-    return tasks.filter(
-      (t) => !t.parent_id && (!selectedCategoryId || t.category_id === selectedCategoryId)
-    );
-  }, [tasks, selectedCategoryId]);
+    return tasks.filter((t) => {
+      if (t.parent_id) return false;
+      if (selectedCategoryId && t.category_id !== selectedCategoryId) return false;
+      // Empty array = show all (no filter)
+      if (statusFilter.length === 0) return true;
+      // If task has notion_status, filter by it
+      if (t.notion_status) return statusFilter.includes(t.notion_status);
+      // Fallback: tasks without notion_status match via binary status mapping
+      const doneStatuses = ["Done", "Cancelled"];
+      const hasDone = statusFilter.some((s) => doneStatuses.includes(s));
+      const hasTodo = statusFilter.some((s) => !doneStatuses.includes(s));
+      if (t.status === "done") return hasDone;
+      return hasTodo;
+    });
+  }, [tasks, selectedCategoryId, statusFilter]);
 
   // Compute sub-task counts and group subtasks by parent
   const { subTaskCounts, subTasksByParent } = useMemo(() => {

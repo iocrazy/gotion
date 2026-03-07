@@ -39,6 +39,7 @@ async fn create_task(
         req.due_date,
         req.category_id,
         req.parent_id,
+        None, // notion_status set by poller on sync
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -50,12 +51,41 @@ async fn create_task(
     let pool = state.pool.clone();
     let task_clone = task.clone();
     tokio::spawn(async move {
-        match notion_push::push_new_task(&client, &task_clone).await {
+        // Look up parent's notion_id if this is a sub-task
+        let parent_notion_id = if let Some(pid) = task_clone.parent_id {
+            db::tasks::get_task(&pool, pid)
+                .await
+                .ok()
+                .flatten()
+                .and_then(|t| t.notion_id)
+        } else {
+            None
+        };
+
+        // Resolve category_id to category name
+        let category_name = if let Some(cat_id) = task_clone.category_id {
+            db::categories::get_category(&pool, cat_id)
+                .await
+                .ok()
+                .flatten()
+                .map(|c| c.name)
+        } else {
+            None
+        };
+
+        match notion_push::push_new_task(
+            &client,
+            &task_clone,
+            parent_notion_id.as_deref(),
+            category_name.as_deref(),
+        )
+        .await
+        {
             Ok(notion_id) => {
                 // Store the notion_id mapping
-                let _ = sqlx::query("UPDATE tasks SET notion_id = $1 WHERE id = $2")
+                let _ = sqlx::query("UPDATE tasks SET notion_id = ? WHERE id = ?")
                     .bind(&notion_id)
-                    .bind(task_clone.id)
+                    .bind(task_clone.id.to_string())
                     .execute(&pool)
                     .await;
                 tracing::debug!("Pushed new task to Notion: {}", notion_id);
@@ -84,6 +114,7 @@ async fn update_task(
         req.parent_id.map(Some),
         req.sort_order,
         req.starred,
+        None, // notion_status preserved from existing
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -94,11 +125,26 @@ async fn update_task(
 
             // Push to Notion in the background (non-blocking)
             let client = state.notion_client.clone();
+            let pool = state.pool.clone();
             let task_clone = t.clone();
             tokio::spawn(async move {
                 if let Some(ref notion_id) = task_clone.notion_id {
+                    // Resolve category_id to name for Notion
+                    let category_name: Option<Option<String>> = if let Some(cat_id) = task_clone.category_id {
+                        let name = db::categories::get_category(&pool, cat_id)
+                            .await
+                            .ok()
+                            .flatten()
+                            .map(|c| c.name);
+                        Some(name)
+                    } else {
+                        Some(None) // explicitly clear category
+                    };
+
+                    let cat_ref = category_name.as_ref().map(|o| o.as_deref());
+
                     if let Err(e) =
-                        notion_push::push_task_update(&client, notion_id, &task_clone).await
+                        notion_push::push_task_update(&client, notion_id, &task_clone, cat_ref).await
                     {
                         tracing::error!("Failed to push task update to Notion: {}", e);
                     }

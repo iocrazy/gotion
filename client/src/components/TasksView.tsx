@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CategoryTabs } from "./CategoryTabs";
 import { TaskList } from "./TaskList";
 import { MoreOptionsMenu } from "./MoreOptionsMenu";
+import type { StatusFilter } from "./MoreOptionsMenu";
 
 type SortOption =
   | "due_date"
@@ -21,9 +22,39 @@ interface TasksViewProps {
 
 export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("creation_time");
-  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>(() =>
+    (localStorage.getItem("gotion_sortBy") as SortOption) || "creation_time"
+  );
+  const [showSubtasks, setShowSubtasks] = useState(() =>
+    localStorage.getItem("gotion_showSubtasks") === "true"
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    try {
+      const stored = localStorage.getItem("gotion_statusFilter");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { /* ignore parse errors from old format */ }
+    return [];
+  });
   const [pinned, setPinned] = useState(false);
+
+  const handleSortChange = (sort: SortOption) => {
+    setSortBy(sort);
+    localStorage.setItem("gotion_sortBy", sort);
+  };
+
+  const handleToggleSubtasks = () => {
+    const next = !showSubtasks;
+    setShowSubtasks(next);
+    localStorage.setItem("gotion_showSubtasks", String(next));
+  };
+
+  const handleStatusFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    localStorage.setItem("gotion_statusFilter", JSON.stringify(filter));
+  };
 
   const togglePin = async () => {
     try {
@@ -66,7 +97,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} />
+        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} statusFilter={statusFilter} />
       </div>
 
       {/* More options menu */}
@@ -74,9 +105,11 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
         <MoreOptionsMenu
           onClose={() => setShowMoreOptions(false)}
           currentSort={sortBy}
-          onSortChange={(sort) => { setSortBy(sort); setShowMoreOptions(false); }}
+          onSortChange={(sort) => { handleSortChange(sort); setShowMoreOptions(false); }}
           showSubtasks={showSubtasks}
-          onToggleSubtasks={() => setShowSubtasks(!showSubtasks)}
+          onToggleSubtasks={handleToggleSubtasks}
+          statusFilter={statusFilter}
+          onStatusFilterChange={handleStatusFilterChange}
         />
       )}
 

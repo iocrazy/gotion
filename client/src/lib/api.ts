@@ -20,6 +20,7 @@ export interface Task {
   sort_order: number;
   starred: boolean;
   starred_updated_at: string | null;
+  notion_status: string | null;
 }
 
 export interface Block {
@@ -158,13 +159,22 @@ export const api = {
   },
 
   // Notion config
-  async getNotionConfig(): Promise<{ token_configured: boolean; token_preview: string; database_id: string }> {
+  async getNotionConfig(): Promise<{
+    token_configured: boolean;
+    token_preview: string;
+    database_id: string;
+    field_map: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string; parent_item: string; status_type: string };
+  }> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`);
     if (!res.ok) throw new Error(`Failed to get notion config: ${res.status}`);
     return res.json();
   },
 
-  async updateNotionConfig(data: { token?: string; database_id?: string }): Promise<void> {
+  async updateNotionConfig(data: {
+    token?: string;
+    database_id?: string;
+    field_map?: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string };
+  }): Promise<void> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -173,9 +183,35 @@ export const api = {
     if (!res.ok) throw new Error(`Failed to update notion config: ${res.status}`);
   },
 
-  async testNotionConnection(): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${getBaseUrl()}/api/notion/test`, { method: "POST" });
+  async testNotionConnection(data?: { token?: string; database_id?: string }): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data ?? {}),
+    });
     if (!res.ok) throw new Error(`Failed to test notion: ${res.status}`);
+    return res.json();
+  },
+
+  async cleanupEmptyTasks(): Promise<{ deleted: number }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/cleanup-empty`, { method: "DELETE" });
+    if (!res.ok) throw new Error(`Failed to cleanup: ${res.status}`);
+    return res.json();
+  },
+
+  async syncNow(): Promise<{ success: boolean; synced: number; message: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/sync-now`, { method: "POST" });
+    if (!res.ok) throw new Error(`Failed to sync: ${res.status}`);
+    return res.json();
+  },
+
+  async getNotionSchema(): Promise<{
+    success: boolean;
+    properties: { name: string; property_type: string; options: string[] }[];
+    message: string;
+  }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/schema`);
+    if (!res.ok) throw new Error(`Failed to get notion schema: ${res.status}`);
     return res.json();
   },
 };

@@ -16,6 +16,7 @@ import { CalendarView } from "./components/CalendarView";
 import { MineView } from "./components/MineView";
 import { AnimatePresence } from "motion/react";
 import { SettingsView } from "./components/SettingsView";
+import { SyncView } from "./components/SyncView";
 import type { AppView } from "./components/BottomNav";
 
 function App() {
@@ -39,6 +40,7 @@ function AppContent() {
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showStarred, setShowStarred] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSync, setShowSync] = useState(false);
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
@@ -96,6 +98,10 @@ function AppContent() {
             setIsSidebarOpen(false);
             setShowSettings(true);
           }}
+          onSyncClick={() => {
+            setIsSidebarOpen(false);
+            setShowSync(true);
+          }}
           onStarredClick={() => {
             setIsSidebarOpen(false);
             setShowStarred(true);
@@ -136,17 +142,13 @@ function AppContent() {
           )}
         </AnimatePresence>
 
-        {/* Status bar */}
-        <div
-          className="px-3 py-1 text-[10px] text-center absolute bottom-0 left-0 right-0"
-          style={{ color: "var(--text-muted)" }}
-        >
-          {syncStatus === "connected"
-            ? "● Synced"
-            : syncStatus === "connecting"
-              ? "○ Connecting..."
-              : "● Offline"}
-        </div>
+        {/* Sync View */}
+        <AnimatePresence>
+          {showSync && (
+            <SyncView onClose={() => setShowSync(false)} syncStatus={syncStatus} />
+          )}
+        </AnimatePresence>
+
       </div>
     </AppShell>
   );

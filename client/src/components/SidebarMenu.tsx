@@ -19,6 +19,7 @@ interface SidebarMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsClick: () => void;
+  onSyncClick: () => void;
   onStarredClick: () => void;
   onCreateCategory: () => void;
   onEditCategory?: (categoryId: string) => void;
@@ -90,6 +91,7 @@ export function SidebarMenu({
   isOpen,
   onClose,
   onSettingsClick,
+  onSyncClick,
   onStarredClick,
   onCreateCategory,
   onEditCategory,
@@ -226,6 +228,10 @@ export function SidebarMenu({
               <MenuItem
                 icon={<Cloud size={20} className="text-blue-400" />}
                 label="Sync"
+                onClick={() => {
+                  onSyncClick();
+                  onClose();
+                }}
               />
             </div>
           </motion.div>

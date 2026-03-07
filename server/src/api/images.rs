@@ -45,11 +45,13 @@ async fn upload_image(
 
         // Store in DB
         let stored_path = stored_filename.clone();
+        let now = chrono::Utc::now();
         sqlx::query(
-            "INSERT INTO images (id, stored_path, uploaded_at) VALUES ($1, $2, now())",
+            "INSERT INTO images (id, stored_path, uploaded_at) VALUES (?, ?, ?)",
         )
-        .bind(id)
+        .bind(id.to_string())
         .bind(&stored_path)
+        .bind(now)
         .execute(&state.pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -70,8 +72,8 @@ async fn get_image(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let row = sqlx::query_as::<_, ImageRow>("SELECT stored_path FROM images WHERE id = $1")
-        .bind(id)
+    let row = sqlx::query_as::<_, ImageRow>("SELECT stored_path FROM images WHERE id = ?")
+        .bind(id.to_string())
         .fetch_optional(&state.pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

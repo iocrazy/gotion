@@ -201,7 +201,7 @@ export function DatePickerModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/40"
+            className="fixed inset-0 bg-black/40"
             style={{ zIndex: 50 }}
           />
           <motion.div
@@ -209,7 +209,7 @@ export function DatePickerModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 top-12 bg-[#F5F6F8] rounded-t-3xl flex flex-col overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 top-12 bg-[#F5F6F8] rounded-t-3xl flex flex-col overflow-hidden"
             style={{ zIndex: 50 }}
           >
             {/* Header */}
