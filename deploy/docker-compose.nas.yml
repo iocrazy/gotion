@@ -1,0 +1,17 @@
+services:
+  server:
+    image: ghcr.io/iocrazy/gotion-server:latest
+    container_name: gotion-server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: sqlite:/data/gotion.db?mode=rwc
+      NOTION_TOKEN: ${NOTION_TOKEN:-}
+      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
+      RUST_LOG: info
+    volumes:
+      - gotion-data:/data
+
+volumes:
+  gotion-data:
