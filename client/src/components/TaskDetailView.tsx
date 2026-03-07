@@ -16,6 +16,7 @@ import { SettingItem } from "./ui/SettingItem";
 import { TaskDetailMoreOptions } from "./TaskDetailMoreOptions";
 import { DatePickerModal } from "./DatePickerModal";
 import { CategoryPickerModal } from "./CategoryPickerModal";
+import { NotesModal } from "./NotesModal";
 import { format } from "date-fns";
 
 export function TaskDetailView() {
@@ -28,6 +29,8 @@ export function TaskDetailView() {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState("");
 
   const subtasks = task ? tasks.filter((t) => t.parent_id === task.id) : [];
 
@@ -182,7 +185,12 @@ export function TaskDetailView() {
           <SettingItem
             icon={<FileText size={20} />}
             label="Notes"
-            right={<span className="text-gray-400 text-sm">Add</span>}
+            right={
+              <span className="text-gray-400 text-sm">
+                {notes ? "Edit" : "Add"}
+              </span>
+            }
+            onClick={() => setShowNotes(true)}
           />
           <SettingItem
             icon={
@@ -230,6 +238,14 @@ export function TaskDetailView() {
         onSelect={(categoryId) => {
           updateTask(task.id, { category_id: categoryId });
         }}
+      />
+
+      {/* Notes Modal */}
+      <NotesModal
+        open={showNotes}
+        onClose={() => setShowNotes(false)}
+        initialNotes={notes}
+        onSave={setNotes}
       />
     </motion.div>
   );
