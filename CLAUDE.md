@@ -5,9 +5,10 @@ Desktop floating TodoList app with Notion bidirectional sync, offline support, a
 ## Tech Stack
 
 - **Client**: Tauri 2.x (Rust) + React 19 + TypeScript + TailwindCSS 4 + TipTap + Zustand
-- **Server**: Axum (Rust) + PostgreSQL + WebSocket
+- **Server**: Axum (Rust) + SQLite + WebSocket
 - **Shared**: Rust crate with data models and Notion Block ↔ TipTap JSON converter
 - **Build**: Vite, Cargo workspace
+- **Deploy**: Docker + GitHub Actions → GHCR → Synology NAS
 
 ## Project Structure
 
@@ -16,33 +17,28 @@ Gotion/
 ├── Cargo.toml              # Workspace root (members: shared, server, client/src-tauri)
 ├── shared/                 # Shared Rust crate: models, notion_types, converter
 ├── server/                 # Axum backend: REST API + WebSocket + Notion sync
-│   ├── src/api/            # REST routes (tasks, blocks, images, sync)
-│   ├── src/db/             # PostgreSQL operations (tasks, blocks)
+│   ├── src/api/            # REST routes (tasks, blocks, images, categories, notion)
+│   ├── src/db/             # SQLite operations (tasks, blocks, categories)
 │   ├── src/ws/             # WebSocket broadcast
-│   └── src/sync/           # Notion poller, push, conflict resolution
+│   ├── src/sync/           # Notion poller, push, webhook, conflict resolution
+│   ├── migrations/         # SQL migrations (init.sql + incremental)
+│   └── Dockerfile          # Multi-stage build
 ├── client/
 │   ├── src-tauri/          # Tauri Rust: window control, SQLite cache, offline queue
 │   └── src/                # React frontend: components, hooks, stores
-├── docker-compose.yml      # PostgreSQL + server
+├── deploy/                 # NAS deployment config
+├── .github/workflows/      # CI/CD (build → GHCR → SSH deploy to NAS)
+├── docker-compose.yml      # Local development
 └── docs/plans/             # Design and implementation docs
 ```
-
-## Build Environment
-
-- **Rust toolchain**: nightly-x86_64-pc-windows-gnu (required for `-Z unstable-options` in .cargo/config.toml)
-- **MSYS2**: MinGW-w64 at `/c/msys64/mingw64/bin` must be on PATH
-- **Node**: npm for client frontend dependencies
 
 ## Development Commands
 
 ```bash
-# Start PostgreSQL
-docker compose up -d db
+# Start server (Docker, SQLite auto-created)
+docker compose up -d
 
-# Run migration
-docker compose exec db psql -U gotion -d gotion -f /dev/stdin < server/migrations/001_initial.sql
-
-# Start server (needs .env with DATABASE_URL, NOTION_TOKEN, NOTION_DATABASE_ID)
+# Or run server directly (Rust)
 cd server && cargo run
 
 # Start client dev mode
@@ -54,22 +50,24 @@ cd client && npm run dev
 
 ## Environment Variables
 
-Server requires (via `.env` or environment):
-- `DATABASE_URL=postgres://gotion:gotion_dev@localhost:5432/gotion`
-- `NOTION_TOKEN=` (Notion Internal Integration token, optional for local dev)
-- `NOTION_DATABASE_ID=` (Notion database ID, optional for local dev)
+Server (via environment or Docker):
+- `DATABASE_URL=sqlite:/data/gotion.db?mode=rwc` (SQLite path)
+- `NOTION_TOKEN=` (optional, configurable via Settings UI)
+- `NOTION_DATABASE_ID=` (optional, configurable via Settings UI)
 - `RUST_LOG=info`
 
 ## Key Conventions
 
 - Cargo workspace with `resolver = "2"`, shared dependencies in workspace root
-- Server uses runtime-unchecked sqlx queries (no compile-time DB check needed)
+- Server uses SQLite with runtime-unchecked sqlx queries (no compile-time DB check)
+- Migrations run on startup via `init.sql` + ALTER TABLE for incremental changes
 - Field-level timestamps for conflict resolution (title_updated_at, status_updated_at, etc.)
+- `notion_status` stores raw Notion status value for granular filtering
 - WebSocket messages use `#[serde(tag = "type", content = "data")]` tagged enum
 - Client SQLite offline cache with `is_dirty` flag and `offline_queue` table
-- TipTap content stored as single `tiptap_doc` block per task
-- Notion API rate limit: 3 req/s via Semaphore in NotionClient
-- Window: 380x520, transparent, no decorations, glass morphism UI
+- Notion sync: polling (30s) + webhook (`/api/notion/webhook`) for real-time
+- Notion config stored in SQLite `notion_config` table, editable via Settings UI
+- Window: 380x520, light theme, red accent color
 
 ## Git
 
