@@ -48,6 +48,15 @@ export function CalendarView({ onSearch, onMenuClick }: CalendarViewProps) {
   const { tasks, selectTask } = useTaskStore();
   const today = useMemo(() => new Date(), []);
 
+  // Dates that have tasks (for dot indicators)
+  const datesWithTasks = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tasks) {
+      if (t.due_date) set.add(t.due_date);
+    }
+    return set;
+  }, [tasks]);
+
   const { days, emptyDays } = useMemo(() => {
     const dim = new Date(
       viewMonth.getFullYear(),
@@ -161,24 +170,35 @@ export function CalendarView({ onSearch, onMenuClick }: CalendarViewProps) {
           {days.map((day) => {
             const selected = isSelected(day);
             const todayDay = isToday(day);
+            const dateStr = formatDateString(
+              new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day),
+            );
+            const hasTasks = datesWithTasks.has(dateStr);
             return (
-              <button
-                key={day}
-                onClick={() => handleDayClick(day)}
-                className={`
-                  w-9 h-9 mx-auto flex items-center justify-center rounded-full
-                  text-sm transition-colors
-                  ${
-                    selected
-                      ? "bg-red-500 text-white shadow-md shadow-red-200 font-bold"
-                      : todayDay
-                        ? "text-red-500 font-bold"
-                        : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-              >
-                {day}
-              </button>
+              <div key={day} className="flex flex-col items-center mb-1">
+                <button
+                  onClick={() => handleDayClick(day)}
+                  className={`
+                    w-9 h-9 flex items-center justify-center rounded-full
+                    text-sm transition-colors
+                    ${
+                      selected
+                        ? "bg-red-500 text-white shadow-md shadow-red-200 font-bold"
+                        : todayDay
+                          ? "text-red-500 font-bold"
+                          : "text-gray-700 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  {day}
+                </button>
+                {hasTasks && !selected && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-0.5" />
+                )}
+                {(!hasTasks || selected) && (
+                  <span className="w-1.5 h-1.5 mt-0.5" />
+                )}
+              </div>
             );
           })}
         </div>
