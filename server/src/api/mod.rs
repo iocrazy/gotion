@@ -1,6 +1,7 @@
 pub mod blocks;
 pub mod categories;
 pub mod images;
+pub mod notion;
 pub mod tasks;
 
 use std::sync::Arc;
@@ -22,5 +23,6 @@ pub fn router(state: AppState) -> Router {
         .merge(blocks::router())
         .merge(images::router())
         .merge(categories::router())
+        .merge(notion::router())
         .with_state(state)
 }

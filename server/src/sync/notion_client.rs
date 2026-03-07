@@ -1,16 +1,21 @@
 use reqwest::Client;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+use tokio::sync::{RwLock, Semaphore};
 use tokio::time::{sleep, Duration};
 
 use gotion_shared::notion_types::*;
 
 pub struct NotionClient {
     client: Client,
-    token: String,
-    database_id: String,
+    config: RwLock<NotionConfig>,
     /// Rate limiter: 3 requests per second
     rate_limiter: Arc<Semaphore>,
+}
+
+#[derive(Clone)]
+pub struct NotionConfig {
+    pub token: String,
+    pub database_id: String,
 }
 
 impl NotionClient {
@@ -31,9 +36,53 @@ impl NotionClient {
 
         Self {
             client: Client::new(),
-            token,
-            database_id,
+            config: RwLock::new(NotionConfig { token, database_id }),
             rate_limiter,
+        }
+    }
+
+    /// Update the Notion token and/or database_id at runtime.
+    pub async fn update_config(&self, token: Option<String>, database_id: Option<String>) {
+        let mut config = self.config.write().await;
+        if let Some(t) = token {
+            config.token = t;
+        }
+        if let Some(db) = database_id {
+            config.database_id = db;
+        }
+    }
+
+    /// Get the current config snapshot.
+    pub async fn get_config(&self) -> NotionConfig {
+        self.config.read().await.clone()
+    }
+
+    /// Test connectivity by calling Notion /v1/users/me.
+    pub async fn test_connection(&self) -> Result<String, String> {
+        let config = self.config.read().await;
+        if config.token.is_empty() {
+            return Err("Notion token is not configured".into());
+        }
+
+        let resp = self
+            .client
+            .get("https://api.notion.com/v1/users/me")
+            .header("Authorization", format!("Bearer {}", config.token))
+            .header("Notion-Version", "2022-06-28")
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        let status = resp.status();
+        let body: serde_json::Value = resp.json().await.map_err(|e| format!("Parse failed: {}", e))?;
+
+        if status.is_success() {
+            let name = body["name"].as_str().unwrap_or("unknown");
+            let bot_type = body["type"].as_str().unwrap_or("bot");
+            Ok(format!("Connected as {} ({})", name, bot_type))
+        } else {
+            let msg = body["message"].as_str().unwrap_or("Unknown error");
+            Err(format!("Notion API {} - {}", status.as_u16(), msg))
         }
     }
 
@@ -50,13 +99,14 @@ impl NotionClient {
     ) -> Result<Vec<NotionPage>, reqwest::Error> {
         let mut all_pages = Vec::new();
         let mut cursor: Option<String> = None;
+        let config = self.config.read().await;
 
         loop {
             self.acquire_rate_limit().await;
 
             let url = format!(
                 "https://api.notion.com/v1/databases/{}/query",
-                self.database_id
+                config.database_id
             );
 
             let mut body = serde_json::json!({});
@@ -77,7 +127,7 @@ impl NotionClient {
             let resp: NotionQueryResponse = self
                 .client
                 .post(&url)
-                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Authorization", format!("Bearer {}", config.token))
                 .header("Notion-Version", "2022-06-28")
                 .header("Content-Type", "application/json")
                 .json(&body)
@@ -102,6 +152,7 @@ impl NotionClient {
     pub async fn get_blocks(&self, page_id: &str) -> Result<Vec<NotionBlock>, reqwest::Error> {
         let mut all_blocks = Vec::new();
         let mut cursor: Option<String> = None;
+        let config = self.config.read().await;
 
         loop {
             self.acquire_rate_limit().await;
@@ -117,7 +168,7 @@ impl NotionClient {
             let resp: NotionBlocksResponse = self
                 .client
                 .get(&url)
-                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Authorization", format!("Bearer {}", config.token))
                 .header("Notion-Version", "2022-06-28")
                 .send()
                 .await?
@@ -144,6 +195,7 @@ impl NotionClient {
         due_date: Option<&str>,
     ) -> Result<NotionPage, reqwest::Error> {
         self.acquire_rate_limit().await;
+        let config = self.config.read().await;
 
         let mut properties = serde_json::json!({
             "Name": {
@@ -161,14 +213,14 @@ impl NotionClient {
         }
 
         let body = serde_json::json!({
-            "parent": { "database_id": &self.database_id },
+            "parent": { "database_id": &config.database_id },
             "properties": properties
         });
 
         let resp = self
             .client
             .post("https://api.notion.com/v1/pages")
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", config.token))
             .header("Notion-Version", "2022-06-28")
             .header("Content-Type", "application/json")
             .json(&body)
@@ -194,6 +246,7 @@ impl NotionClient {
         due_date: Option<Option<&str>>,
     ) -> Result<(), reqwest::Error> {
         self.acquire_rate_limit().await;
+        let config = self.config.read().await;
 
         let mut properties = serde_json::json!({});
 
@@ -225,7 +278,7 @@ impl NotionClient {
 
         self.client
             .patch(&format!("https://api.notion.com/v1/pages/{}", page_id))
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", config.token))
             .header("Notion-Version", "2022-06-28")
             .header("Content-Type", "application/json")
             .json(&body)
@@ -238,12 +291,13 @@ impl NotionClient {
     /// Archive (soft-delete) a page.
     pub async fn archive_page(&self, page_id: &str) -> Result<(), reqwest::Error> {
         self.acquire_rate_limit().await;
+        let config = self.config.read().await;
 
         let body = serde_json::json!({ "archived": true });
 
         self.client
             .patch(&format!("https://api.notion.com/v1/pages/{}", page_id))
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", config.token))
             .header("Notion-Version", "2022-06-28")
             .json(&body)
             .send()

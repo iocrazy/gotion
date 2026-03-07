@@ -156,4 +156,26 @@ export const api = {
     const data = await res.json();
     return { id: data.id, url: `${getBaseUrl()}${data.url}` };
   },
+
+  // Notion config
+  async getNotionConfig(): Promise<{ token_configured: boolean; token_preview: string; database_id: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/config`);
+    if (!res.ok) throw new Error(`Failed to get notion config: ${res.status}`);
+    return res.json();
+  },
+
+  async updateNotionConfig(data: { token?: string; database_id?: string }): Promise<void> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to update notion config: ${res.status}`);
+  },
+
+  async testNotionConnection(): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/notion/test`, { method: "POST" });
+    if (!res.ok) throw new Error(`Failed to test notion: ${res.status}`);
+    return res.json();
+  },
 };
