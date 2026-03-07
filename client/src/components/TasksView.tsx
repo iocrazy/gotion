@@ -21,6 +21,7 @@ interface TasksViewProps {
 export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("creation_time");
+  const [showSubtasks, setShowSubtasks] = useState(false);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -45,7 +46,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
 
       {/* Task list */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <TaskList />
+        <TaskList showSubtasks={showSubtasks} />
       </div>
 
       {/* More options menu */}
@@ -54,6 +55,8 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
           onClose={() => setShowMoreOptions(false)}
           currentSort={sortBy}
           onSortChange={(sort) => { setSortBy(sort); setShowMoreOptions(false); }}
+          showSubtasks={showSubtasks}
+          onToggleSubtasks={() => setShowSubtasks(!showSubtasks)}
         />
       )}
 

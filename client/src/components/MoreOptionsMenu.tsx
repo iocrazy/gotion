@@ -19,14 +19,17 @@ interface MoreOptionsMenuProps {
   onClose: () => void;
   currentSort: SortOption;
   onSortChange: (sort: SortOption) => void;
+  showSubtasks: boolean;
+  onToggleSubtasks: () => void;
 }
 
 export function MoreOptionsMenu({
   onClose,
   currentSort,
   onSortChange,
+  showSubtasks,
+  onToggleSubtasks,
 }: MoreOptionsMenuProps) {
-  const [showSubtasks, setShowSubtasks] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(true);
 
   const sortOptions: { id: SortOption; label: string }[] = [
@@ -67,7 +70,7 @@ export function MoreOptionsMenu({
             className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
               showSubtasks ? "bg-blue-500" : "bg-gray-300"
             }`}
-            onClick={() => setShowSubtasks(!showSubtasks)}
+            onClick={onToggleSubtasks}
           >
             <div
               className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${

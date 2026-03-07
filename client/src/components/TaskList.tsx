@@ -3,7 +3,11 @@ import { useTaskStore } from "../stores/taskStore";
 import { TaskItem } from "./TaskItem";
 import type { Task } from "../lib/api";
 
-export function TaskList() {
+interface TaskListProps {
+  showSubtasks?: boolean;
+}
+
+export function TaskList({ showSubtasks = false }: TaskListProps) {
   const { tasks, loading, fetchTasks, groupBy, selectedCategoryId } = useTaskStore();
   const selectTask = useTaskStore((s) => s.selectTask);
 
@@ -18,9 +22,10 @@ export function TaskList() {
     );
   }, [tasks, selectedCategoryId]);
 
-  // Compute sub-task counts per parent task
-  const subTaskCounts = useMemo(() => {
+  // Compute sub-task counts and group subtasks by parent
+  const { subTaskCounts, subTasksByParent } = useMemo(() => {
     const counts: Record<string, { done: number; total: number }> = {};
+    const byParent: Record<string, Task[]> = {};
     tasks.forEach((t) => {
       if (t.parent_id) {
         if (!counts[t.parent_id]) {
@@ -30,9 +35,13 @@ export function TaskList() {
         if (t.status === "done") {
           counts[t.parent_id].done += 1;
         }
+        if (!byParent[t.parent_id]) {
+          byParent[t.parent_id] = [];
+        }
+        byParent[t.parent_id].push(t);
       }
     });
-    return counts;
+    return { subTaskCounts: counts, subTasksByParent: byParent };
   }, [tasks]);
 
   const groupedTasks = useMemo(() => {
@@ -131,12 +140,21 @@ export function TaskList() {
             </div>
             <div>
               {groupTasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  subTaskCount={subTaskCounts[task.id]}
-                  onClick={() => selectTask(task.id)}
-                />
+                <div key={task.id}>
+                  <TaskItem
+                    task={task}
+                    subTaskCount={subTaskCounts[task.id]}
+                    onClick={() => selectTask(task.id)}
+                  />
+                  {showSubtasks && subTasksByParent[task.id]?.map((sub) => (
+                    <div key={sub.id} className="pl-8">
+                      <TaskItem
+                        task={sub}
+                        onClick={() => selectTask(sub.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
