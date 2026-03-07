@@ -41,16 +41,24 @@ export function CategoryIcon({
   icon,
   size = 20,
   className,
+  color,
 }: {
   icon: string | null | undefined;
   size?: number;
   className?: string;
+  color?: string | null;
 }) {
   if (!icon) return null;
 
   const LucideComp = ICON_MAP[icon];
   if (LucideComp) {
-    return <LucideComp size={size} className={className} />;
+    return (
+      <LucideComp
+        size={size}
+        className={className}
+        style={color ? { color } : undefined}
+      />
+    );
   }
 
   // Assume it's an emoji

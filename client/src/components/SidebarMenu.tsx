@@ -9,9 +9,11 @@ import {
   LayoutGrid,
   Folder,
   CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useTaskStore } from "../stores/taskStore";
+import { CategoryIcon } from "../lib/categoryIcons";
 
 interface SidebarMenuProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ interface SidebarMenuProps {
   onSettingsClick: () => void;
   onStarredClick: () => void;
   onCreateCategory: () => void;
+  onEditCategory?: (categoryId: string) => void;
 }
 
 function MenuItem({
@@ -46,21 +49,39 @@ function CategoryItem({
   icon,
   label,
   count,
+  onClick,
+  onEdit,
 }: {
   icon: React.ReactNode;
   label: string;
   count: number;
+  onClick?: () => void;
+  onEdit?: () => void;
 }) {
   return (
     <button
       type="button"
-      className="w-full text-left flex items-center justify-between px-4 py-3 active:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+      className="w-full text-left flex items-center justify-between px-4 py-3 active:bg-gray-50 rounded-xl transition-colors cursor-pointer group"
+      onClick={onClick}
     >
       <div className="flex items-center gap-4">
         {icon}
         <span className="text-gray-800">{label}</span>
       </div>
-      <span className="text-gray-400 text-sm">{count}</span>
+      <div className="flex items-center gap-2">
+        {onEdit && (
+          <span
+            className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <Pencil size={14} />
+          </span>
+        )}
+        <span className="text-gray-400 text-sm">{count}</span>
+      </div>
     </button>
   );
 }
@@ -71,10 +92,12 @@ export function SidebarMenu({
   onSettingsClick,
   onStarredClick,
   onCreateCategory,
+  onEditCategory,
 }: SidebarMenuProps) {
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(true);
   const categories = useCategoryStore((s) => s.categories);
   const tasks = useTaskStore((s) => s.tasks);
+  const setSelectedCategoryId = useTaskStore((s) => s.setSelectedCategoryId);
 
   const taskCountByCategoryId = useMemo(() => {
     return tasks.reduce<Record<string, number>>((acc, t) => {
@@ -155,13 +178,27 @@ export function SidebarMenu({
                       <CategoryItem
                         key={cat.id}
                         icon={
-                          <Folder
-                            size={18}
-                            className="text-gray-400"
-                          />
+                          cat.icon ? (
+                            <CategoryIcon
+                              icon={cat.icon}
+                              size={18}
+                              color={cat.color}
+                            />
+                          ) : (
+                            <Folder size={18} className="text-gray-400" />
+                          )
                         }
                         label={cat.name}
                         count={taskCountByCategoryId[cat.id] ?? 0}
+                        onClick={() => {
+                          setSelectedCategoryId(cat.id);
+                          onClose();
+                        }}
+                        onEdit={
+                          onEditCategory
+                            ? () => onEditCategory(cat.id)
+                            : undefined
+                        }
                       />
                     ))}
 

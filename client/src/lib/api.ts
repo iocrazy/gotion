@@ -130,6 +130,16 @@ export const api = {
     return res.json();
   },
 
+  async updateCategory(id: string, data: { name?: string; icon?: string; color?: string; sort_order?: number }): Promise<Category> {
+    const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to update category: ${res.status}`);
+    return res.json();
+  },
+
   async deleteCategory(id: string): Promise<void> {
     const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, { method: "DELETE" });
     if (!res.ok && res.status !== 204) throw new Error(`Failed to delete category: ${res.status}`);

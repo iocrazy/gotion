@@ -154,7 +154,7 @@ export function AddTaskPanel({ open, onClose, onCreateCategory }: AddTaskPanelPr
                     className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
                   >
                     <span className="text-gray-500">
-                      {cat.icon ? <CategoryIcon icon={cat.icon} size={20} /> : <Folder size={20} />}
+                      {cat.icon ? <CategoryIcon icon={cat.icon} size={20} color={cat.color} /> : <Folder size={20} />}
                     </span>
                     <span className="text-gray-700 text-sm">{cat.name}</span>
                   </button>

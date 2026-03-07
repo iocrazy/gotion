@@ -50,13 +50,7 @@ export function CategoryPickerModal({
             className="w-full flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
             onClick={() => handleSelect(cat.id)}
           >
-            {cat.color ? (
-              <span
-                className="w-5 h-5 rounded-full shrink-0"
-                style={{ backgroundColor: cat.color }}
-              />
-            ) : null}
-            <CategoryIcon icon={cat.icon} size={20} className="text-gray-600" />
+            <CategoryIcon icon={cat.icon} size={20} color={cat.color} />
             <span className="text-gray-800 text-[15px]">{cat.name}</span>
           </button>
         ))}

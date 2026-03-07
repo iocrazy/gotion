@@ -15,8 +15,8 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0
 
 -- Default categories
 INSERT INTO categories (name, icon, color, sort_order) VALUES
-    ('Work', '💼', '#3B82F6', 1),
-    ('Personal', '👤', '#10B981', 2),
-    ('Wishlist', '⭐', '#F59E0B', 3),
-    ('Birthday', '🎂', '#EC4899', 4)
+    ('Work', 'briefcase', '#3B82F6', 1),
+    ('Personal', 'heart', '#10B981', 2),
+    ('Wishlist', 'flag', '#F59E0B', 3),
+    ('Birthday', 'cake', '#EC4899', 4)
 ON CONFLICT DO NOTHING;

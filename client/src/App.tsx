@@ -7,6 +7,7 @@ import { BottomNav } from "./components/BottomNav";
 import { TasksView } from "./components/TasksView";
 import { AddTaskPanel } from "./components/AddTaskPanel";
 import { CreateCategoryModal } from "./components/CreateCategoryModal";
+import { EditCategoryModal } from "./components/EditCategoryModal";
 import { TaskDetailView } from "./components/TaskDetailView";
 import { SidebarMenu } from "./components/SidebarMenu";
 import { SearchView } from "./components/SearchView";
@@ -38,6 +39,7 @@ function AppContent() {
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showStarred, setShowStarred] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   return (
@@ -79,6 +81,13 @@ function AppContent() {
           onClose={() => setShowCreateCategory(false)}
         />
 
+        {/* Edit Category Modal */}
+        <EditCategoryModal
+          open={editCategoryId !== null}
+          categoryId={editCategoryId}
+          onClose={() => setEditCategoryId(null)}
+        />
+
         {/* Sidebar */}
         <SidebarMenu
           isOpen={isSidebarOpen}
@@ -94,6 +103,10 @@ function AppContent() {
           onCreateCategory={() => {
             setIsSidebarOpen(false);
             setShowCreateCategory(true);
+          }}
+          onEditCategory={(id) => {
+            setIsSidebarOpen(false);
+            setEditCategoryId(id);
           }}
         />
 

@@ -15,7 +15,7 @@ export function CategoryTabs() {
 
   return (
     <div
-      className="flex items-center gap-2 px-4 py-3 overflow-x-auto category-tabs"
+      className="flex items-center gap-2 px-4 py-3 overflow-x-auto shrink-0 category-tabs"
       style={{ scrollbarWidth: "none" }}
     >
       <style>{`.category-tabs::-webkit-scrollbar { display: none; }`}</style>
@@ -42,7 +42,7 @@ export function CategoryTabs() {
           )}
         >
           <span className="flex items-center gap-1.5">
-            {cat.icon && <CategoryIcon icon={cat.icon} size={16} />}
+            {cat.icon && <CategoryIcon icon={cat.icon} size={16} color={cat.color} />}
             {cat.name}
           </span>
         </button>
