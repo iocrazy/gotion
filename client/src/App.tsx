@@ -17,16 +17,25 @@ import { MineView } from "./components/MineView";
 import { AnimatePresence } from "motion/react";
 import { SettingsView } from "./components/SettingsView";
 import { SyncView } from "./components/SyncView";
+import { AuthPage } from "./components/AuthPage";
+import { setTokenGetter } from "./lib/api";
+import { useAuthStore } from "./stores/authStore";
 import type { AppView } from "./components/BottomNav";
+
+// Set up token getter for API calls
+setTokenGetter(() => useAuthStore.getState().token ?? "");
 
 function App() {
   const { loaded, loadSettings } = useSettingsStore();
+  const { user, loading: authLoading, loadToken } = useAuthStore();
 
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
+    loadToken();
+  }, [loadSettings, loadToken]);
 
-  if (!loaded) return null;
+  if (!loaded || authLoading) return null;
+  if (!user) return <AuthPage />;
 
   return <AppContent />;
 }

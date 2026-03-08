@@ -7,7 +7,10 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: sqlite:/data/gotion.db?mode=rwc
-      API_KEY: ${API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-noreply@gotion.heygo.cn}
+      SERVER_URL: ${SERVER_URL:-https://gotion.heygo.cn:88}
       RUST_LOG: info
     volumes:
       - gotion-data:/data

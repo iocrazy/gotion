@@ -10,7 +10,7 @@ use crate::db;
 use crate::sync::conflict;
 use crate::sync::notion_client::NotionClient;
 use crate::ws::WsBroadcast;
-use gotion_shared::models::{Category, Task, TaskStatus, WsMessage};
+use gotion_shared::models::{Task, TaskStatus, WsMessage};
 
 pub async fn start_polling(pool: SqlitePool, client: Arc<NotionClient>, broadcast: WsBroadcast) {
     let last_sync: Arc<Mutex<Option<DateTime<Utc>>>> = Arc::new(Mutex::new(None));
@@ -53,6 +53,34 @@ pub async fn sync_once(
     do_sync(pool, client, broadcast, None).await
 }
 
+/// Look up the user_id that owns the Notion config.
+/// Falls back to the first admin user if not set.
+async fn get_sync_user_id(pool: &SqlitePool) -> Option<String> {
+    // Try notion_config user_id first
+    let row = sqlx::query_as::<_, FindRow>(
+        "SELECT user_id AS id FROM notion_config WHERE user_id IS NOT NULL LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+
+    if let Some(r) = row {
+        return Some(r.id);
+    }
+
+    // Fall back to the first admin user
+    let admin_row = sqlx::query_as::<_, FindRow>(
+        "SELECT id FROM users WHERE is_admin = 1 LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+
+    admin_row.map(|r| r.id)
+}
+
 /// Core sync logic shared by poller and manual trigger.
 async fn do_sync(
     pool: &SqlitePool,
@@ -60,6 +88,10 @@ async fn do_sync(
     broadcast: &WsBroadcast,
     since: Option<&str>,
 ) -> Result<usize, String> {
+    let sync_user_id = get_sync_user_id(pool)
+        .await
+        .ok_or_else(|| "No user found for Notion sync".to_string())?;
+
     let pages = client
         .query_database(since)
         .await
@@ -108,7 +140,7 @@ async fn do_sync(
 
         // Resolve category name -> local category_id (find or create)
         let notion_category_id: Option<Uuid> = if let Some(ref cat_name) = notion_category_name {
-            Some(find_or_create_category(pool, cat_name, broadcast).await)
+            Some(find_or_create_category(pool, &sync_user_id, cat_name, broadcast).await)
         } else {
             None
         };
@@ -180,6 +212,7 @@ async fn do_sync(
 
                     if let Ok(Some(updated)) = db::tasks::update_task(
                         pool,
+                        &sync_user_id,
                         local_task.id,
                         if merge.local_changed { Some(merge.title.clone()) } else { None },
                         if merge.local_changed { Some(merge.status.clone()) } else { None },
@@ -192,7 +225,7 @@ async fn do_sync(
                     )
                     .await
                     {
-                        broadcast.send(WsMessage::TaskUpdated(updated));
+                        broadcast.send(sync_user_id.clone(), WsMessage::TaskUpdated(updated));
                     }
                 }
 
@@ -231,6 +264,7 @@ async fn do_sync(
                 };
                 if let Ok(task) = db::tasks::create_task(
                     pool,
+                    &sync_user_id,
                     notion_title.clone(),
                     Some(status),
                     notion_due_date,
@@ -245,16 +279,16 @@ async fn do_sync(
                     if let Some(starred) = notion_starred {
                         if starred {
                             let _ = db::tasks::update_task(
-                                pool, task.id, None, None, None, None, None, None, Some(true), None,
+                                pool, &sync_user_id, task.id, None, None, None, None, None, None, Some(true), None,
                             )
                             .await;
                         }
                     }
                     // Re-fetch to get full task with category and starred
-                    if let Ok(Some(full_task)) = db::tasks::get_task(pool, task.id).await {
-                        broadcast.send(WsMessage::TaskCreated(full_task));
+                    if let Ok(Some(full_task)) = db::tasks::get_task(pool, &sync_user_id, task.id).await {
+                        broadcast.send(sync_user_id.clone(), WsMessage::TaskCreated(full_task));
                     } else {
-                        broadcast.send(WsMessage::TaskCreated(task));
+                        broadcast.send(sync_user_id.clone(), WsMessage::TaskCreated(task));
                     }
                 }
             }
@@ -266,11 +300,12 @@ async fn do_sync(
     Ok(synced)
 }
 
-/// Find a category by name, or create it if it doesn't exist.
-async fn find_or_create_category(pool: &SqlitePool, name: &str, broadcast: &WsBroadcast) -> Uuid {
-    // Try to find existing
-    let row = sqlx::query_as::<_, FindRow>("SELECT id FROM categories WHERE name = ?")
+/// Find a category by name for a specific user, or create it if it doesn't exist.
+async fn find_or_create_category(pool: &SqlitePool, user_id: &str, name: &str, broadcast: &WsBroadcast) -> Uuid {
+    // Try to find existing category for this user
+    let row = sqlx::query_as::<_, FindRow>("SELECT id FROM categories WHERE name = ? AND user_id = ?")
         .bind(name)
+        .bind(user_id)
         .fetch_optional(pool)
         .await
         .ok()
@@ -283,10 +318,10 @@ async fn find_or_create_category(pool: &SqlitePool, name: &str, broadcast: &WsBr
     }
 
     // Create new category
-    match db::categories::create_category(pool, name.to_string(), None, None, None).await {
+    match db::categories::create_category(pool, user_id, name.to_string(), None, None, None).await {
         Ok(cat) => {
             let id = cat.id;
-            broadcast.send(WsMessage::CategoryCreated(cat));
+            broadcast.send(user_id.to_string(), WsMessage::CategoryCreated(cat));
             id
         }
         Err(_) => Uuid::nil(),
@@ -294,19 +329,40 @@ async fn find_or_create_category(pool: &SqlitePool, name: &str, broadcast: &WsBr
 }
 
 async fn find_task_by_notion_id(pool: &SqlitePool, notion_id: &str) -> Option<Task> {
-    let row = sqlx::query_as::<_, FindRow>("SELECT id FROM tasks WHERE notion_id = ?")
-        .bind(notion_id)
-        .fetch_optional(pool)
-        .await
-        .ok()?;
+    // Query the full task row directly by notion_id (no user_id filter needed
+    // since notion_id is unique and this is a system-level sync operation)
+    let row = sqlx::query_as::<_, TaskByNotionIdRow>(
+        "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
+         title_updated_at, status_updated_at, due_date_updated_at, \
+         category_id, parent_id, sort_order, starred, starred_updated_at, notion_status \
+         FROM tasks WHERE notion_id = ?",
+    )
+    .bind(notion_id)
+    .fetch_optional(pool)
+    .await
+    .ok()?;
 
-    match row {
-        Some(r) => {
-            let uuid: Uuid = r.id.parse().ok()?;
-            db::tasks::get_task(pool, uuid).await.ok().flatten()
-        }
-        None => None,
-    }
+    row.map(|r| Task {
+        id: r.id.parse().unwrap_or_default(),
+        notion_id: r.notion_id,
+        title: r.title,
+        status: match r.status.as_str() {
+            "done" => TaskStatus::Done,
+            _ => TaskStatus::Todo,
+        },
+        due_date: r.due_date,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        title_updated_at: r.title_updated_at,
+        status_updated_at: r.status_updated_at,
+        due_date_updated_at: r.due_date_updated_at,
+        category_id: r.category_id.as_deref().and_then(|v| v.parse().ok()),
+        parent_id: r.parent_id.as_deref().and_then(|v| v.parse().ok()),
+        sort_order: r.sort_order,
+        starred: r.starred,
+        starred_updated_at: r.starred_updated_at,
+        notion_status: r.notion_status,
+    })
 }
 
 async fn set_notion_id(pool: &SqlitePool, task_id: Uuid, notion_id: &str) -> Result<(), sqlx::Error> {
@@ -321,6 +377,26 @@ async fn set_notion_id(pool: &SqlitePool, task_id: Uuid, notion_id: &str) -> Res
 #[derive(sqlx::FromRow)]
 struct FindRow {
     id: String,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct TaskByNotionIdRow {
+    id: String,
+    notion_id: Option<String>,
+    title: String,
+    status: String,
+    due_date: Option<NaiveDate>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    title_updated_at: DateTime<Utc>,
+    status_updated_at: DateTime<Utc>,
+    due_date_updated_at: Option<DateTime<Utc>>,
+    category_id: Option<String>,
+    parent_id: Option<String>,
+    sort_order: i32,
+    starred: bool,
+    starred_updated_at: Option<DateTime<Utc>>,
+    notion_status: Option<String>,
 }
 
 /// Download a Notion image URL and cache it locally.

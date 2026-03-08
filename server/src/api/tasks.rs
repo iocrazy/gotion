@@ -2,11 +2,12 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
     routing::{get, patch},
-    Router,
+    Extension, Router,
 };
 use gotion_shared::models::{CreateTaskRequest, Task, TaskListQuery, UpdateTaskRequest, WsMessage};
 use uuid::Uuid;
 
+use crate::api::auth::AuthUser;
 use crate::api::AppState;
 use crate::db;
 use crate::sync::notion_push;
@@ -19,9 +20,10 @@ pub fn router() -> Router<AppState> {
 
 async fn list_tasks(
     State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
     Query(query): Query<TaskListQuery>,
 ) -> Result<Json<Vec<Task>>, StatusCode> {
-    let tasks = db::tasks::list_tasks(&state.pool, query.status.as_ref(), query.search.as_deref())
+    let tasks = db::tasks::list_tasks(&state.pool, &auth.user_id, query.status.as_ref(), query.search.as_deref())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -30,10 +32,12 @@ async fn list_tasks(
 
 async fn create_task(
     State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
     Json(req): Json<CreateTaskRequest>,
 ) -> Result<(StatusCode, Json<Task>), StatusCode> {
     let task = db::tasks::create_task(
         &state.pool,
+        &auth.user_id,
         req.title,
         req.status,
         req.due_date,
@@ -44,16 +48,17 @@ async fn create_task(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.broadcast.send(WsMessage::TaskCreated(task.clone()));
+    state.broadcast.send(auth.user_id.clone(), WsMessage::TaskCreated(task.clone()));
 
     // Push to Notion in the background (non-blocking)
     let client = state.notion_client.clone();
     let pool = state.pool.clone();
     let task_clone = task.clone();
+    let user_id = auth.user_id.clone();
     tokio::spawn(async move {
         // Look up parent's notion_id if this is a sub-task
         let parent_notion_id = if let Some(pid) = task_clone.parent_id {
-            db::tasks::get_task(&pool, pid)
+            db::tasks::get_task(&pool, &user_id, pid)
                 .await
                 .ok()
                 .flatten()
@@ -64,7 +69,7 @@ async fn create_task(
 
         // Resolve category_id to category name
         let category_name = if let Some(cat_id) = task_clone.category_id {
-            db::categories::get_category(&pool, cat_id)
+            db::categories::get_category(&pool, &user_id, cat_id)
                 .await
                 .ok()
                 .flatten()
@@ -101,11 +106,13 @@ async fn create_task(
 
 async fn update_task(
     State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateTaskRequest>,
 ) -> Result<Json<Task>, StatusCode> {
     let task = db::tasks::update_task(
         &state.pool,
+        &auth.user_id,
         id,
         req.title,
         req.status,
@@ -121,17 +128,18 @@ async fn update_task(
 
     match task {
         Some(t) => {
-            state.broadcast.send(WsMessage::TaskUpdated(t.clone()));
+            state.broadcast.send(auth.user_id.clone(), WsMessage::TaskUpdated(t.clone()));
 
             // Push to Notion in the background (non-blocking)
             let client = state.notion_client.clone();
             let pool = state.pool.clone();
             let task_clone = t.clone();
+            let user_id = auth.user_id.clone();
             tokio::spawn(async move {
                 if let Some(ref notion_id) = task_clone.notion_id {
                     // Resolve category_id to name for Notion
                     let category_name: Option<Option<String>> = if let Some(cat_id) = task_clone.category_id {
-                        let name = db::categories::get_category(&pool, cat_id)
+                        let name = db::categories::get_category(&pool, &user_id, cat_id)
                             .await
                             .ok()
                             .flatten()
@@ -159,19 +167,20 @@ async fn update_task(
 
 async fn delete_task(
     State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     // Fetch the task first to get the notion_id before deleting
-    let task = db::tasks::get_task(&state.pool, id)
+    let task = db::tasks::get_task(&state.pool, &auth.user_id, id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let deleted = db::tasks::delete_task(&state.pool, id)
+    let deleted = db::tasks::delete_task(&state.pool, &auth.user_id, id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if deleted {
-        state.broadcast.send(WsMessage::TaskDeleted { id });
+        state.broadcast.send(auth.user_id.clone(), WsMessage::TaskDeleted { id });
 
         // Archive in Notion in the background (non-blocking)
         if let Some(t) = task {

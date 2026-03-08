@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { Settings, ChevronRight, Crown } from "lucide-react";
+import { Settings, ChevronRight, Crown, LogOut, User } from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
+import { useAuthStore } from "../stores/authStore";
 
 interface MineViewProps {
   onSettingsClick: () => void;
@@ -14,6 +15,8 @@ const DAILY_CHART_PLACEHOLDER_HEIGHTS = [20, 40, 15, 60, 35, 25, 45];
 
 export function MineView({ onSettingsClick }: MineViewProps) {
   const tasks = useTaskStore((s) => s.tasks);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const completedCount = useMemo(
     () => tasks.filter((t) => t.status === "done").length,
@@ -31,6 +34,28 @@ export function MineView({ onSettingsClick }: MineViewProps) {
       </div>
 
       <div className="px-4 space-y-4 pb-24">
+        {/* User Info */}
+        {user && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <User size={22} className="text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-semibold text-gray-800 truncate">
+                {user.username}
+              </p>
+              <p className="text-sm text-gray-400 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-red-500"
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        )}
+
         {/* Premium Banner */}
         <div className="relative bg-gradient-to-r from-[#F06A6A] to-[#E55555] rounded-2xl p-5 text-white overflow-hidden">
           {/* Decorative circles */}

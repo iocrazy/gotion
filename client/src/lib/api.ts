@@ -4,14 +4,16 @@ function getBaseUrl(): string {
   return useSettingsStore.getState().serverUrl;
 }
 
-function getApiKey(): string {
-  return useSettingsStore.getState().apiKey;
+let _getToken: () => string = () => "";
+
+export function setTokenGetter(fn: () => string) {
+  _getToken = fn;
 }
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { ...extra };
-  const key = getApiKey();
-  if (key) headers["X-API-Key"] = key;
+  const token = _getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 }
 
@@ -235,6 +237,63 @@ export const api = {
       headers: authHeaders(),
     });
     if (!res.ok) throw new Error(`Failed to get notion schema: ${res.status}`);
+    return res.json();
+  },
+
+  // Auth
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{
+    token: string;
+    user: { id: string; email: string; username: string; is_admin: boolean };
+  }> {
+    const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const data = await res
+        .json()
+        .catch(() => ({ message: "Login failed" }));
+      throw new Error(data.message || `Login failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async register(
+    email: string,
+    username: string,
+    password: string,
+  ): Promise<{ message: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, username, password }),
+    });
+    if (!res.ok) {
+      const data = await res
+        .json()
+        .catch(() => ({ message: "Registration failed" }));
+      throw new Error(data.message || `Registration failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async getMe(
+    token?: string,
+  ): Promise<{
+    id: string;
+    email: string;
+    username: string;
+    is_admin: boolean;
+  }> {
+    const headers: Record<string, string> = {};
+    const t = token ?? _getToken();
+    if (t) headers["Authorization"] = `Bearer ${t}`;
+    const res = await fetch(`${getBaseUrl()}/api/auth/me`, { headers });
+    if (!res.ok) throw new Error(`Failed to get user: ${res.status}`);
     return res.json();
   },
 };

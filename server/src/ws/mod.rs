@@ -4,9 +4,15 @@ use gotion_shared::models::WsMessage;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
+#[derive(Clone, Debug)]
+pub struct UserWsMessage {
+    pub user_id: String,
+    pub message: WsMessage,
+}
+
 #[derive(Clone)]
 pub struct WsBroadcast {
-    tx: Arc<broadcast::Sender<WsMessage>>,
+    tx: Arc<broadcast::Sender<UserWsMessage>>,
 }
 
 impl WsBroadcast {
@@ -15,11 +21,14 @@ impl WsBroadcast {
         Self { tx: Arc::new(tx) }
     }
 
-    pub fn send(&self, msg: WsMessage) {
-        let _ = self.tx.send(msg);
+    pub fn send(&self, user_id: String, msg: WsMessage) {
+        let _ = self.tx.send(UserWsMessage {
+            user_id,
+            message: msg,
+        });
     }
 
-    pub fn subscribe(&self) -> broadcast::Receiver<WsMessage> {
+    pub fn subscribe(&self) -> broadcast::Receiver<UserWsMessage> {
         self.tx.subscribe()
     }
 }

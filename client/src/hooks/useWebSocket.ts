@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTaskStore } from "../stores/taskStore";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useAuthStore } from "../stores/authStore";
 import { isTauri, tauriInvoke } from "../lib/tauri";
 import { api } from "../lib/api";
 
@@ -52,7 +53,7 @@ export function useWebSocket(): SyncStatus {
   const { upsertTask, removeTask } = useTaskStore();
   const { upsertCategory, removeCategory } = useCategoryStore();
   const serverUrl = useSettingsStore((s) => s.serverUrl);
-  const apiKey = useSettingsStore((s) => s.apiKey);
+  const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
     let disposed = false;
@@ -62,7 +63,7 @@ export function useWebSocket(): SyncStatus {
       setStatus("connecting");
 
       let wsUrl = serverUrl.replace(/^http/, "ws") + "/ws";
-      if (apiKey) wsUrl += `?api_key=${encodeURIComponent(apiKey)}`;
+      if (token) wsUrl += `?token=${encodeURIComponent(token)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -138,7 +139,7 @@ export function useWebSocket(): SyncStatus {
         wsRef.current.close();
       }
     };
-  }, [upsertTask, removeTask, upsertCategory, removeCategory, serverUrl, apiKey]);
+  }, [upsertTask, removeTask, upsertCategory, removeCategory, serverUrl, token]);
 
   return status;
 }

@@ -28,18 +28,6 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
   useEffect(() => { setLocalUrl(serverUrl); }, [serverUrl]);
   const urlChanged = localUrl.trim() !== serverUrl;
 
-  // API Key state
-  const apiKey = useSettingsStore((s) => s.apiKey);
-  const setApiKey = useSettingsStore((s) => s.setApiKey);
-  const [localApiKey, setLocalApiKey] = useState(apiKey);
-  const [apiKeySaved, setApiKeySaved] = useState(false);
-  useEffect(() => { setLocalApiKey(apiKey); }, [apiKey]);
-  const handleSaveApiKey = () => {
-    setApiKey(localApiKey);
-    setApiKeySaved(true);
-    setTimeout(() => setApiKeySaved(false), 2000);
-  };
-
   const handleSaveUrl = () => {
     const trimmed = localUrl.trim();
     if (trimmed === serverUrl) return;
@@ -294,36 +282,6 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
                 }`}
               >
                 {urlSaved ? "✓" : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* API Key group */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-6">
-          <div className="px-4 py-3">
-            <label className="text-sm text-gray-500 mb-1 block">API Key</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                value={localApiKey}
-                onChange={(e) => { setLocalApiKey(e.target.value); setApiKeySaved(false); }}
-                onKeyDown={(e) => e.key === "Enter" && handleSaveApiKey()}
-                className="flex-1 text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 outline-none"
-                placeholder="Enter API key (optional)"
-              />
-              <button
-                onClick={handleSaveApiKey}
-                disabled={localApiKey === apiKey}
-                className={`text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                  apiKeySaved
-                    ? "bg-green-50 text-green-600"
-                    : localApiKey !== apiKey
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-gray-100 text-gray-400"
-                }`}
-              >
-                {apiKeySaved ? "✓" : "Save"}
               </button>
             </div>
           </div>

@@ -72,6 +72,7 @@ impl From<TaskRow> for Task {
 /// List tasks, optionally filtered by status and/or search term, ordered by sort_order ASC, due_date ASC NULLS LAST, created_at DESC.
 pub async fn list_tasks(
     pool: &SqlitePool,
+    user_id: &str,
     status_filter: Option<&TaskStatus>,
     search: Option<&str>,
 ) -> Result<Vec<Task>, sqlx::Error> {
@@ -81,7 +82,7 @@ pub async fn list_tasks(
                 FROM tasks";
     let order = "ORDER BY sort_order ASC, CASE WHEN due_date IS NULL THEN 1 ELSE 0 END, due_date ASC, created_at DESC";
 
-    let mut conditions: Vec<&str> = Vec::new();
+    let mut conditions: Vec<&str> = vec!["user_id = ?"];
     let status_str = status_filter.map(|s| status_to_str(s).to_string());
     let search_pattern = search.map(|s| format!("%{}%", s));
 
@@ -92,13 +93,10 @@ pub async fn list_tasks(
         conditions.push("title LIKE ?");
     }
 
-    let query_str = if conditions.is_empty() {
-        format!("{} {}", base, order)
-    } else {
-        format!("{} WHERE {} {}", base, conditions.join(" AND "), order)
-    };
+    let query_str = format!("{} WHERE {} {}", base, conditions.join(" AND "), order);
 
     let mut query = sqlx::query_as::<_, TaskRow>(&query_str);
+    query = query.bind(user_id);
     if let Some(ref s) = status_str {
         query = query.bind(s);
     }
@@ -111,14 +109,15 @@ pub async fn list_tasks(
 }
 
 /// Get a single task by its UUID.
-pub async fn get_task(pool: &SqlitePool, id: Uuid) -> Result<Option<Task>, sqlx::Error> {
+pub async fn get_task(pool: &SqlitePool, user_id: &str, id: Uuid) -> Result<Option<Task>, sqlx::Error> {
     let row = sqlx::query_as::<_, TaskRow>(
         "SELECT id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
          category_id, parent_id, sort_order, starred, starred_updated_at, notion_status \
-         FROM tasks WHERE id = ?",
+         FROM tasks WHERE id = ? AND user_id = ?",
     )
     .bind(id.to_string())
+    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
@@ -128,6 +127,7 @@ pub async fn get_task(pool: &SqlitePool, id: Uuid) -> Result<Option<Task>, sqlx:
 /// Create a new task and return it.
 pub async fn create_task(
     pool: &SqlitePool,
+    user_id: &str,
     title: String,
     status: Option<TaskStatus>,
     due_date: Option<NaiveDate>,
@@ -142,15 +142,16 @@ pub async fn create_task(
     let due_date_updated_at: Option<DateTime<Utc>> = due_date.map(|_| now);
 
     let row = sqlx::query_as::<_, TaskRow>(
-        "INSERT INTO tasks (id, title, status, due_date, category_id, parent_id, \
+        "INSERT INTO tasks (id, user_id, title, status, due_date, category_id, parent_id, \
          created_at, updated_at, title_updated_at, status_updated_at, due_date_updated_at, \
          starred, starred_updated_at, notion_status) \
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?) \
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?) \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
          category_id, parent_id, sort_order, starred, starred_updated_at, notion_status",
     )
     .bind(id.to_string())
+    .bind(user_id)
     .bind(&title)
     .bind(status_str)
     .bind(due_date)
@@ -182,6 +183,7 @@ pub async fn create_task(
 /// - `Some(Some(uuid))` means set the field to the given value
 pub async fn update_task(
     pool: &SqlitePool,
+    user_id: &str,
     id: Uuid,
     title: Option<String>,
     status: Option<TaskStatus>,
@@ -193,7 +195,7 @@ pub async fn update_task(
     notion_status: Option<String>,
 ) -> Result<Option<Task>, sqlx::Error> {
     // First fetch the current task to merge fields
-    let existing = match get_task(pool, id).await? {
+    let existing = match get_task(pool, user_id, id).await? {
         Some(t) => t,
         None => return Ok(None),
     };
@@ -249,7 +251,7 @@ pub async fn update_task(
          title_updated_at = ?, status_updated_at = ?, due_date_updated_at = ?, \
          category_id = ?, parent_id = ?, sort_order = ?, \
          starred = ?, starred_updated_at = ?, notion_status = ? \
-         WHERE id = ? \
+         WHERE id = ? AND user_id = ? \
          RETURNING id, notion_id, title, status, due_date, created_at, updated_at, \
          title_updated_at, status_updated_at, due_date_updated_at, \
          category_id, parent_id, sort_order, starred, starred_updated_at, notion_status",
@@ -268,6 +270,7 @@ pub async fn update_task(
     .bind(new_starred_updated_at)
     .bind(&new_notion_status)
     .bind(id.to_string())
+    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
@@ -275,9 +278,10 @@ pub async fn update_task(
 }
 
 /// Delete a task by UUID. Returns true if the task existed and was deleted.
-pub async fn delete_task(pool: &SqlitePool, id: Uuid) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query("DELETE FROM tasks WHERE id = ?")
+pub async fn delete_task(pool: &SqlitePool, user_id: &str, id: Uuid) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("DELETE FROM tasks WHERE id = ? AND user_id = ?")
         .bind(id.to_string())
+        .bind(user_id)
         .execute(pool)
         .await?;
 

@@ -1,14 +1,15 @@
 mod api;
 mod db;
 mod sync;
+mod email;
 mod ws;
+mod jwt;
 
 use std::sync::Arc;
 
 use api::AppState;
 use sqlx::sqlite::SqlitePoolOptions;
 use tower_http::cors::CorsLayer;
-use axum::routing::get;
 
 use sync::notion_client::NotionClient;
 
@@ -60,6 +61,42 @@ async fn main() {
         .await
         .ok(); // ignore error if column already exists
 
+    // Run user management migrations
+    sqlx::raw_sql(include_str!("../migrations/007_users.sql"))
+        .execute(&pool)
+        .await
+        .ok();
+
+    // Add user_id to tasks
+    sqlx::query("ALTER TABLE tasks ADD COLUMN user_id TEXT REFERENCES users(id)")
+        .execute(&pool)
+        .await
+        .ok();
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)")
+        .execute(&pool)
+        .await
+        .ok();
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON tasks(user_id, status)")
+        .execute(&pool)
+        .await
+        .ok();
+
+    // Add user_id to categories
+    sqlx::query("ALTER TABLE categories ADD COLUMN user_id TEXT REFERENCES users(id)")
+        .execute(&pool)
+        .await
+        .ok();
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id)")
+        .execute(&pool)
+        .await
+        .ok();
+
+    // Add user_id to notion_config
+    sqlx::query("ALTER TABLE notion_config ADD COLUMN user_id TEXT")
+        .execute(&pool)
+        .await
+        .ok();
+
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB
@@ -75,20 +112,36 @@ async fn main() {
         broadcast.clone(),
     ));
 
-    let api_key = std::env::var("API_KEY").ok();
-    if api_key.is_some() {
-        tracing::info!("API key authentication enabled");
-    }
+    // JWT secret
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| {
+            tracing::warn!("JWT_SECRET not set, using random secret (tokens won't persist across restarts)");
+            uuid::Uuid::new_v4().to_string()
+        });
+
+    // Email service (Resend)
+    let email_service = match std::env::var("RESEND_API_KEY") {
+        Ok(key) => {
+            let from = std::env::var("RESEND_FROM").unwrap_or_else(|_| "noreply@gotion.heygo.cn".into());
+            let base_url = std::env::var("SERVER_URL").unwrap_or_else(|_| "https://gotion.heygo.cn:88".into());
+            tracing::info!("Email verification enabled via Resend");
+            email::EmailService::new(key, from, base_url)
+        }
+        Err(_) => {
+            tracing::warn!("RESEND_API_KEY not set, email verification disabled (users auto-verified)");
+            email::EmailService::noop()
+        }
+    };
 
     let state = AppState {
         pool,
         broadcast: broadcast.clone(),
         notion_client,
-        api_key: api::auth::ApiKey(api_key),
+        jwt_secret: jwt::JwtSecret(jwt_secret),
+        email_service,
     };
 
     let app = api::router(state)
-        .route("/ws", get(ws::handler::ws_handler).with_state(broadcast))
         .layer(CorsLayer::permissive());
 
     let addr = "0.0.0.0:3001";
