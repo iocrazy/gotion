@@ -5,8 +5,6 @@ import {
   MoreHorizontal,
   Calendar as CalendarIcon,
   FileText,
-  Paperclip,
-  Crown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTaskStore } from "../stores/taskStore";
@@ -17,6 +15,7 @@ import { TaskDetailMoreOptions } from "./TaskDetailMoreOptions";
 import { DatePickerModal } from "./DatePickerModal";
 import { CategoryPickerModal } from "./CategoryPickerModal";
 import { NotesModal } from "./NotesModal";
+import { AttachmentList } from "./AttachmentList";
 import { format } from "date-fns";
 
 interface TaskDetailViewProps {
@@ -177,7 +176,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
           />
         </div>
 
-        {/* Notes + Attachment card */}
+        {/* Notes card */}
         <div
           className={`rounded-3xl overflow-hidden shadow-sm ${
             isDone ? "bg-gray-100" : "bg-white"
@@ -191,20 +190,13 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
                 {notes ? "Edit" : "Add"}
               </span>
             }
+            hasBorder={false}
             onClick={() => setShowNotes(true)}
           />
-          <SettingItem
-            icon={
-              <div className="flex items-center gap-1">
-                <Paperclip size={20} />
-                <Crown size={12} className="text-yellow-500 fill-yellow-500" />
-              </div>
-            }
-            label="Attachment"
-            right={<span className="text-gray-400 text-sm">Add</span>}
-            hasBorder={false}
-          />
         </div>
+
+        {/* Attachments */}
+        <AttachmentList taskId={task.id} />
       </div>
 
       {/* More Options bottom sheet */}
