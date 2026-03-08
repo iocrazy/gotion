@@ -18,6 +18,7 @@ import { AnimatePresence } from "motion/react";
 import { SettingsView } from "./components/SettingsView";
 import { SyncView } from "./components/SyncView";
 import { CompletedTasksView } from "./components/CompletedTasksView";
+import { FocusView } from "./components/FocusView";
 import { AuthPage } from "./components/AuthPage";
 import { UpgradeModal } from "./components/UpgradeModal";
 import { UpgradeContext } from "./lib/upgradeContext";
@@ -65,6 +66,7 @@ function AppContent() {
   const [showSync, setShowSync] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
+  const [focusTask, setFocusTask] = useState<{ id: string; title: string } | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   return (
@@ -166,7 +168,21 @@ function AppContent() {
 
         {/* Task Detail View */}
         <AnimatePresence>
-          {selectedTaskId && <TaskDetailView />}
+          {selectedTaskId && (
+            <TaskDetailView
+              onFocusTask={(id, title) => setFocusTask({ id, title })}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Focus View */}
+        <AnimatePresence>
+          {focusTask && (
+            <FocusView
+              taskTitle={focusTask.title}
+              onClose={() => setFocusTask(null)}
+            />
+          )}
         </AnimatePresence>
 
         {/* Settings View */}

@@ -12,6 +12,7 @@ interface TaskDetailMoreOptionsProps {
   onToggleDone: (done: boolean) => void;
   onClose: () => void;
   onDelete: () => void;
+  onFocus?: () => void;
 }
 
 export function TaskDetailMoreOptions({
@@ -19,6 +20,7 @@ export function TaskDetailMoreOptions({
   onToggleDone,
   onClose,
   onDelete,
+  onFocus,
 }: TaskDetailMoreOptionsProps) {
   return (
     <>
@@ -40,7 +42,7 @@ export function TaskDetailMoreOptions({
       >
         <div className="p-2">
           <div
-            className="flex items-center justify-between p-4 active:bg-gray-50 rounded-xl cursor-pointer border border-yellow-400 mb-2"
+            className="flex items-center justify-between p-4 active:bg-gray-50 rounded-xl cursor-pointer"
             onClick={() => onToggleDone(!isDone)}
           >
             <div className="flex items-center gap-4">
@@ -65,7 +67,13 @@ export function TaskDetailMoreOptions({
             <span className="text-gray-800 text-lg">Duplicate task</span>
           </button>
 
-          <button className="w-full flex items-center gap-4 p-4 active:bg-gray-50 rounded-xl text-left">
+          <button
+            className="w-full flex items-center gap-4 p-4 active:bg-gray-50 rounded-xl text-left"
+            onClick={() => {
+              onClose();
+              onFocus?.();
+            }}
+          >
             <Hourglass size={24} className="text-gray-800" />
             <span className="text-gray-800 text-lg">Focus</span>
           </button>
@@ -79,8 +87,8 @@ export function TaskDetailMoreOptions({
             className="w-full flex items-center gap-4 p-4 active:bg-gray-50 rounded-xl text-left"
             onClick={onDelete}
           >
-            <Trash2 size={24} className="text-gray-800" />
-            <span className="text-gray-800 text-lg">Delete</span>
+            <Trash2 size={24} className="text-red-500" />
+            <span className="text-red-500 text-lg">Delete</span>
           </button>
         </div>
 

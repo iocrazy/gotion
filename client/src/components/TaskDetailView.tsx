@@ -19,7 +19,11 @@ import { CategoryPickerModal } from "./CategoryPickerModal";
 import { NotesModal } from "./NotesModal";
 import { format } from "date-fns";
 
-export function TaskDetailView() {
+interface TaskDetailViewProps {
+  onFocusTask?: (taskId: string, taskTitle: string) => void;
+}
+
+export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
   const { selectedTaskId, selectTask, tasks, updateTask, createTask, deleteTask } =
     useTaskStore();
   const categories = useCategoryStore((s) => s.categories);
@@ -109,9 +113,6 @@ export function TaskDetailView() {
           onClick={() => setShowMoreOptions(true)}
         >
           <MoreHorizontal size={24} />
-          {!isDone && (
-            <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-500 rounded-full" />
-          )}
         </button>
       </div>
 
@@ -217,6 +218,7 @@ export function TaskDetailView() {
               deleteTask(task.id);
               selectTask(null);
             }}
+            onFocus={() => onFocusTask?.(task.id, task.title)}
           />
         )}
       </AnimatePresence>
