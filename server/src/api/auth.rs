@@ -40,6 +40,7 @@ pub async fn jwt_auth(
     // Skip auth for public routes
     if path.starts_with("/api/auth/")
         || path.starts_with("/api/notion/webhook")
+        || path.starts_with("/api/payment/notify")
         || path.starts_with("/ws")
     {
         return Ok(next.run(request).await);

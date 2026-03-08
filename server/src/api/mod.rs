@@ -4,6 +4,7 @@ pub mod blocks;
 pub mod categories;
 pub mod images;
 pub mod notion;
+pub mod payment;
 pub mod tasks;
 
 use std::sync::Arc;
@@ -32,6 +33,7 @@ pub fn router(state: AppState) -> Router {
         .merge(categories::router())
         .merge(notion::router())
         .merge(admin::router())
+        .merge(payment::router())
         .route("/ws", axum::routing::get(crate::ws::handler::ws_handler))
         .with_state(state.clone())
         .layer(middleware::from_fn_with_state(state, auth::jwt_auth))
