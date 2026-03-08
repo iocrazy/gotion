@@ -55,6 +55,15 @@ export interface Category {
   created_at: string;
 }
 
+export interface Attachment {
+  id: string;
+  task_id: string;
+  filename: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+}
+
 export interface CreateTaskRequest {
   title: string;
   status?: "todo" | "done";
@@ -185,6 +194,7 @@ export const api = {
     token_preview: string;
     database_id: string;
     field_map: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string; parent_item: string; status_type: string };
+    webhook_secret: string;
   }> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
       headers: authHeaders(),
@@ -197,6 +207,7 @@ export const api = {
     token?: string;
     database_id?: string;
     field_map?: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string };
+    webhook_secret?: string;
   }): Promise<void> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
       method: "PUT",
@@ -246,7 +257,17 @@ export const api = {
     password: string,
   ): Promise<{
     token: string;
-    user: { id: string; email: string; username: string; is_admin: boolean };
+    user: {
+      id: string;
+      email: string;
+      username: string;
+      is_admin: boolean;
+      subscription?: {
+        plan: string;
+        expires_at: string | null;
+        is_pro: boolean;
+      };
+    };
   }> {
     const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
       method: "POST",
@@ -288,6 +309,11 @@ export const api = {
     email: string;
     username: string;
     is_admin: boolean;
+    subscription: {
+      plan: string;
+      expires_at: string | null;
+      is_pro: boolean;
+    };
   }> {
     const headers: Record<string, string> = {};
     const t = token ?? _getToken();
@@ -295,5 +321,80 @@ export const api = {
     const res = await fetch(`${getBaseUrl()}/api/auth/me`, { headers });
     if (!res.ok) throw new Error(`Failed to get user: ${res.status}`);
     return res.json();
+  },
+
+  // Subscription & Payment
+  async getSubscription(): Promise<{
+    plan: string;
+    period: string | null;
+    expires_at: string | null;
+    is_pro: boolean;
+  }> {
+    const res = await fetch(`${getBaseUrl()}/api/subscription`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to get subscription: ${res.status}`);
+    return res.json();
+  },
+
+  async createPayment(
+    plan: string,
+    channel: string,
+  ): Promise<{ order_no: string; qr_url: string }> {
+    const res = await fetch(`${getBaseUrl()}/api/payment/create`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ plan, channel }),
+    });
+    if (!res.ok) throw new Error(`Failed to create payment: ${res.status}`);
+    return res.json();
+  },
+
+  async getPaymentStatus(
+    orderNo: string,
+  ): Promise<{ status: string; plan: string }> {
+    const res = await fetch(
+      `${getBaseUrl()}/api/payment/status/${orderNo}`,
+      { headers: authHeaders() },
+    );
+    if (!res.ok)
+      throw new Error(`Failed to get payment status: ${res.status}`);
+    return res.json();
+  },
+
+  // Attachments
+  async listAttachments(taskId: string): Promise<Attachment[]> {
+    const res = await fetch(
+      `${getBaseUrl()}/api/tasks/${taskId}/attachments`,
+      { headers: authHeaders() },
+    );
+    if (!res.ok)
+      throw new Error(`Failed to list attachments: ${res.status}`);
+    return res.json();
+  },
+
+  async uploadAttachment(taskId: string, file: File): Promise<Attachment> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(
+      `${getBaseUrl()}/api/tasks/${taskId}/attachments`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      },
+    );
+    if (!res.ok)
+      throw new Error(`Failed to upload attachment: ${res.status}`);
+    return res.json();
+  },
+
+  async deleteAttachment(id: string): Promise<void> {
+    const res = await fetch(`${getBaseUrl()}/api/attachments/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (!res.ok && res.status !== 204)
+      throw new Error(`Failed to delete attachment: ${res.status}`);
   },
 };
