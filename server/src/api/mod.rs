@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod attachments;
 pub mod auth;
 pub mod blocks;
 pub mod categories;
@@ -33,6 +34,7 @@ pub fn router(state: AppState) -> Router {
         .merge(categories::router())
         .merge(notion::router())
         .merge(admin::router())
+        .merge(attachments::router())
         .merge(payment::router())
         .route("/ws", axum::routing::get(crate::ws::handler::ws_handler))
         .with_state(state.clone())

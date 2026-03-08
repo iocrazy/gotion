@@ -22,3 +22,4 @@ argon2 = "0.5"
 jsonwebtoken = "9"
 rand = { version = "0.8", features = ["std"] }
 md5 = "0.7"
+tokio-util = { version = "0.7.18", features = ["io"] }
