@@ -17,6 +17,24 @@ use crate::db;
 use crate::db::users::User;
 
 // ---------------------------------------------------------------------------
+// /me response types
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+pub struct MeResponse {
+    #[serde(flatten)]
+    pub user: User,
+    pub subscription: SubscriptionInfo,
+}
+
+#[derive(Serialize)]
+pub struct SubscriptionInfo {
+    pub plan: String,
+    pub expires_at: Option<String>,
+    pub is_pro: bool,
+}
+
+// ---------------------------------------------------------------------------
 // AuthUser – inserted into request extensions by the JWT middleware
 // ---------------------------------------------------------------------------
 
@@ -321,13 +339,31 @@ async fn verify_email(
 async fn me(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
-) -> AuthResult<User> {
+) -> AuthResult<MeResponse> {
     let user_row = db::users::get_user_by_id(&state.pool, &auth_user.user_id)
         .await
         .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
         .ok_or_else(|| err_msg(StatusCode::NOT_FOUND, "User not found"))?;
 
-    Ok((StatusCode::OK, Json(User::from(user_row))))
+    let sub = db::subscriptions::get_subscription(&state.pool, &auth_user.user_id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch subscription"))?;
+
+    let is_pro = db::subscriptions::is_pro(&state.pool, &auth_user.user_id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to check pro status"))?;
+
+    Ok((
+        StatusCode::OK,
+        Json(MeResponse {
+            user: User::from(user_row),
+            subscription: SubscriptionInfo {
+                plan: sub.plan,
+                expires_at: sub.expires_at,
+                is_pro,
+            },
+        }),
+    ))
 }
 
 async fn change_password(

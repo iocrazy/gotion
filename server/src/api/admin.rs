@@ -4,11 +4,13 @@ use axum::{
     routing::{get, put},
     Extension, Json, Router,
 };
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::api::AppState;
 use crate::api::auth::AuthUser;
 use crate::db;
+use crate::db::subscriptions::{Payment, Subscription};
 use crate::db::users::User;
 
 // ---------------------------------------------------------------------------
@@ -31,6 +33,14 @@ pub struct StatsResponse {
     pub total_users: i64,
     pub total_tasks: i64,
     pub total_categories: i64,
+    pub pro_users: i64,
+    pub monthly_revenue: i64,
+}
+
+#[derive(Deserialize)]
+pub struct GiftProRequest {
+    pub days: i64,
+    pub period: Option<String>,
 }
 
 type AdminResult<T> = Result<Json<T>, (StatusCode, Json<MessageResponse>)>;
@@ -166,11 +176,100 @@ async fn stats(
         .await
         .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to count categories"))?;
 
+    let pro_users: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM subscriptions WHERE plan = 'pro' AND (expires_at IS NULL OR expires_at > datetime('now'))",
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to count pro users"))?;
+
+    let monthly_revenue: (i64,) = sqlx::query_as(
+        "SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid' AND paid_at >= date('now', 'start of month')",
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to calculate revenue"))?;
+
     Ok(Json(StatsResponse {
         total_users,
         total_tasks: total_tasks.0,
         total_categories: total_categories.0,
+        pro_users: pro_users.0,
+        monthly_revenue: monthly_revenue.0,
     }))
+}
+
+// ---------------------------------------------------------------------------
+// Subscription handlers
+// ---------------------------------------------------------------------------
+
+async fn list_subscriptions_handler(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> AdminResult<Vec<Subscription>> {
+    require_admin(&auth_user)?;
+
+    let subscriptions = db::subscriptions::list_subscriptions(&state.pool)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to list subscriptions"))?;
+
+    Ok(Json(subscriptions))
+}
+
+async fn gift_pro(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(user_id): Path<String>,
+    Json(input): Json<GiftProRequest>,
+) -> AdminResult<Subscription> {
+    require_admin(&auth_user)?;
+
+    if input.days <= 0 {
+        return Err(err_msg(StatusCode::BAD_REQUEST, "days must be positive"));
+    }
+
+    // Verify target user exists
+    db::users::get_user_by_id(&state.pool, &user_id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| err_msg(StatusCode::NOT_FOUND, "User not found"))?;
+
+    // Calculate expiry from max(current_expires, now) + days
+    let current_sub = db::subscriptions::get_subscription(&state.pool, &user_id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch subscription"))?;
+
+    let now = Utc::now().naive_utc();
+    let base = current_sub
+        .expires_at
+        .as_deref()
+        .and_then(|s| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").ok())
+        .filter(|exp| *exp > now)
+        .unwrap_or(now);
+
+    let new_expiry = base + chrono::Duration::days(input.days);
+    let expiry_str = new_expiry.format("%Y-%m-%d %H:%M:%S").to_string();
+
+    let period = input.period.as_deref();
+
+    let sub = db::subscriptions::upsert_subscription(&state.pool, &user_id, "pro", period, Some(&expiry_str))
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to upsert subscription"))?;
+
+    Ok(Json(sub))
+}
+
+async fn list_payments_handler(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> AdminResult<Vec<Payment>> {
+    require_admin(&auth_user)?;
+
+    let payments = db::subscriptions::list_payments(&state.pool)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to list payments"))?;
+
+    Ok(Json(payments))
 }
 
 // ---------------------------------------------------------------------------
@@ -182,4 +281,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/admin/users", get(list_users))
         .route("/api/admin/users/{id}", put(update_user).delete(delete_user))
         .route("/api/admin/stats", get(stats))
+        .route("/api/admin/subscriptions", get(list_subscriptions_handler))
+        .route("/api/admin/subscriptions/{user_id}", put(gift_pro))
+        .route("/api/admin/payments", get(list_payments_handler))
 }
