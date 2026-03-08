@@ -52,6 +52,7 @@ export function useWebSocket(): SyncStatus {
   const { upsertTask, removeTask } = useTaskStore();
   const { upsertCategory, removeCategory } = useCategoryStore();
   const serverUrl = useSettingsStore((s) => s.serverUrl);
+  const apiKey = useSettingsStore((s) => s.apiKey);
 
   useEffect(() => {
     let disposed = false;
@@ -60,7 +61,8 @@ export function useWebSocket(): SyncStatus {
       if (disposed) return;
       setStatus("connecting");
 
-      const wsUrl = serverUrl.replace(/^http/, "ws") + "/ws";
+      let wsUrl = serverUrl.replace(/^http/, "ws") + "/ws";
+      if (apiKey) wsUrl += `?api_key=${encodeURIComponent(apiKey)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -136,7 +138,7 @@ export function useWebSocket(): SyncStatus {
         wsRef.current.close();
       }
     };
-  }, [upsertTask, removeTask, upsertCategory, removeCategory, serverUrl]);
+  }, [upsertTask, removeTask, upsertCategory, removeCategory, serverUrl, apiKey]);
 
   return status;
 }

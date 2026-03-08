@@ -4,6 +4,17 @@ function getBaseUrl(): string {
   return useSettingsStore.getState().serverUrl;
 }
 
+function getApiKey(): string {
+  return useSettingsStore.getState().apiKey;
+}
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const key = getApiKey();
+  if (key) headers["X-API-Key"] = key;
+  return headers;
+}
+
 export interface Task {
   id: string;
   notion_id: string | null;
@@ -66,7 +77,9 @@ export const api = {
     if (status) params.set("status", status);
     if (search) params.set("search", search);
     const qs = params.toString();
-    const res = await fetch(`${getBaseUrl()}/api/tasks${qs ? `?${qs}` : ""}`);
+    const res = await fetch(`${getBaseUrl()}/api/tasks${qs ? `?${qs}` : ""}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Failed to list tasks: ${res.status}`);
     return res.json();
   },
@@ -74,7 +87,7 @@ export const api = {
   async createTask(data: CreateTaskRequest): Promise<Task> {
     const res = await fetch(`${getBaseUrl()}/api/tasks`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`Failed to create task: ${res.status}`);
@@ -84,7 +97,7 @@ export const api = {
   async updateTask(id: string, data: UpdateTaskRequest): Promise<Task> {
     const res = await fetch(`${getBaseUrl()}/api/tasks/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`Failed to update task: ${res.status}`);
@@ -94,13 +107,16 @@ export const api = {
   async deleteTask(id: string): Promise<void> {
     const res = await fetch(`${getBaseUrl()}/api/tasks/${id}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
     if (!res.ok && res.status !== 204)
       throw new Error(`Failed to delete task: ${res.status}`);
   },
 
   async getBlocks(taskId: string): Promise<Block[]> {
-    const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/blocks`);
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/blocks`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Failed to get blocks: ${res.status}`);
     return res.json();
   },
@@ -108,7 +124,7 @@ export const api = {
   async updateBlocks(taskId: string, blocks: Block[]): Promise<Block[]> {
     const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/blocks`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(blocks),
     });
     if (!res.ok) throw new Error(`Failed to update blocks: ${res.status}`);
@@ -116,7 +132,9 @@ export const api = {
   },
 
   async listCategories(): Promise<Category[]> {
-    const res = await fetch(`${getBaseUrl()}/api/categories`);
+    const res = await fetch(`${getBaseUrl()}/api/categories`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Failed to list categories: ${res.status}`);
     return res.json();
   },
@@ -124,7 +142,7 @@ export const api = {
   async createCategory(data: { name: string; icon?: string; color?: string; sort_order?: number }): Promise<Category> {
     const res = await fetch(`${getBaseUrl()}/api/categories`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`Failed to create category: ${res.status}`);
@@ -134,7 +152,7 @@ export const api = {
   async updateCategory(id: string, data: { name?: string; icon?: string; color?: string; sort_order?: number }): Promise<Category> {
     const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`Failed to update category: ${res.status}`);
@@ -142,7 +160,7 @@ export const api = {
   },
 
   async deleteCategory(id: string): Promise<void> {
-    const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, { method: "DELETE" });
+    const res = await fetch(`${getBaseUrl()}/api/categories/${id}`, { method: "DELETE", headers: authHeaders() });
     if (!res.ok && res.status !== 204) throw new Error(`Failed to delete category: ${res.status}`);
   },
 
@@ -151,6 +169,7 @@ export const api = {
     formData.append("file", file);
     const res = await fetch(`${getBaseUrl()}/api/images`, {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error(`Failed to upload image: ${res.status}`);
@@ -165,7 +184,9 @@ export const api = {
     database_id: string;
     field_map: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string; parent_item: string; status_type: string };
   }> {
-    const res = await fetch(`${getBaseUrl()}/api/notion/config`);
+    const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Failed to get notion config: ${res.status}`);
     return res.json();
   },
@@ -177,7 +198,7 @@ export const api = {
   }): Promise<void> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`Failed to update notion config: ${res.status}`);
@@ -186,7 +207,7 @@ export const api = {
   async testNotionConnection(data?: { token?: string; database_id?: string }): Promise<{ success: boolean; message: string }> {
     const res = await fetch(`${getBaseUrl()}/api/notion/test`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(data ?? {}),
     });
     if (!res.ok) throw new Error(`Failed to test notion: ${res.status}`);
@@ -194,13 +215,13 @@ export const api = {
   },
 
   async cleanupEmptyTasks(): Promise<{ deleted: number }> {
-    const res = await fetch(`${getBaseUrl()}/api/notion/cleanup-empty`, { method: "DELETE" });
+    const res = await fetch(`${getBaseUrl()}/api/notion/cleanup-empty`, { method: "DELETE", headers: authHeaders() });
     if (!res.ok) throw new Error(`Failed to cleanup: ${res.status}`);
     return res.json();
   },
 
   async syncNow(): Promise<{ success: boolean; synced: number; message: string }> {
-    const res = await fetch(`${getBaseUrl()}/api/notion/sync-now`, { method: "POST" });
+    const res = await fetch(`${getBaseUrl()}/api/notion/sync-now`, { method: "POST", headers: authHeaders() });
     if (!res.ok) throw new Error(`Failed to sync: ${res.status}`);
     return res.json();
   },
@@ -210,7 +231,9 @@ export const api = {
     properties: { name: string; property_type: string; options: string[] }[];
     message: string;
   }> {
-    const res = await fetch(`${getBaseUrl()}/api/notion/schema`);
+    const res = await fetch(`${getBaseUrl()}/api/notion/schema`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Failed to get notion schema: ${res.status}`);
     return res.json();
   },

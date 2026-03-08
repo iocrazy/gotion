@@ -5,11 +5,13 @@ type Theme = "dark" | "light";
 
 interface SettingsState {
   serverUrl: string;
+  apiKey: string;
   bgOpacity: number;
   theme: Theme;
   loaded: boolean;
   loadSettings: () => Promise<void>;
   setServerUrl: (url: string) => Promise<void>;
+  setApiKey: (key: string) => Promise<void>;
   setBgOpacity: (opacity: number) => Promise<void>;
   setTheme: (theme: Theme) => Promise<void>;
 }
@@ -20,6 +22,7 @@ function applyTheme(theme: Theme) {
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   serverUrl: import.meta.env.VITE_SERVER_URL || "https://gotion.heygo.cn:88",
+  apiKey: "",
   bgOpacity: 1.0,
   theme: "light",
   loaded: false,
@@ -33,6 +36,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         applyTheme(theme);
         set({
           serverUrl: settings.server_url,
+          apiKey: settings.api_key ?? "",
           bgOpacity: settings.bg_opacity ?? 1.0,
           theme,
           loaded: true,
@@ -43,10 +47,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       }
     } else {
       const savedUrl = localStorage.getItem("gotion_serverUrl");
+      const savedApiKey = localStorage.getItem("gotion_apiKey") ?? "";
       applyTheme("light");
       set({
         theme: "light",
         loaded: true,
+        apiKey: savedApiKey,
         ...(savedUrl ? { serverUrl: savedUrl } : {}),
       });
     }
@@ -62,6 +68,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       try {
         await tauriInvoke("save_settings", {
           settingsJson: JSON.stringify({ server_url: cleaned }),
+        });
+      } catch (e) {
+        console.error("Failed to save settings:", e);
+      }
+    }
+  },
+
+  setApiKey: async (key: string) => {
+    set({ apiKey: key });
+    if (!isTauri()) {
+      localStorage.setItem("gotion_apiKey", key);
+    }
+    if (isTauri()) {
+      try {
+        await tauriInvoke("save_settings", {
+          settingsJson: JSON.stringify({ api_key: key }),
         });
       } catch (e) {
         console.error("Failed to save settings:", e);

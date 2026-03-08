@@ -75,10 +75,16 @@ async fn main() {
         broadcast.clone(),
     ));
 
+    let api_key = std::env::var("API_KEY").ok();
+    if api_key.is_some() {
+        tracing::info!("API key authentication enabled");
+    }
+
     let state = AppState {
         pool,
         broadcast: broadcast.clone(),
         notion_client,
+        api_key: api::auth::ApiKey(api_key),
     };
 
     let app = api::router(state)
