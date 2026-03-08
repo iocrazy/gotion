@@ -97,6 +97,12 @@ async fn main() {
         .await
         .ok();
 
+    // Run subscriptions, payments, attachments migrations
+    sqlx::raw_sql(include_str!("../migrations/008_subscriptions.sql"))
+        .execute(&pool)
+        .await
+        .ok();
+
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB
