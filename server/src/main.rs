@@ -10,6 +10,7 @@ use std::sync::Arc;
 use api::AppState;
 use sqlx::sqlite::SqlitePoolOptions;
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 
 use sync::notion_client::NotionClient;
 
@@ -147,8 +148,19 @@ async fn main() {
         email_service,
     };
 
-    let app = api::router(state)
-        .layer(CorsLayer::permissive());
+    let admin_dir = std::path::Path::new("./admin/dist");
+    let app = if admin_dir.exists() {
+        tracing::info!("Serving admin SPA from ./admin/dist");
+        let serve_admin = ServeDir::new("./admin/dist")
+            .not_found_service(ServeFile::new("./admin/dist/index.html"));
+        api::router(state)
+            .nest_service("/admin", serve_admin)
+            .layer(CorsLayer::permissive())
+    } else {
+        tracing::info!("Admin SPA not found at ./admin/dist, skipping");
+        api::router(state)
+            .layer(CorsLayer::permissive())
+    };
 
     let addr = "0.0.0.0:3001";
     tracing::info!("Server listening on {addr}");

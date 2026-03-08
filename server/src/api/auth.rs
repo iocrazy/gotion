@@ -60,6 +60,7 @@ pub async fn jwt_auth(
         || path.starts_with("/api/notion/webhook")
         || path.starts_with("/api/payment/notify")
         || path.starts_with("/ws")
+        || path.starts_with("/admin")
     {
         return Ok(next.run(request).await);
     }

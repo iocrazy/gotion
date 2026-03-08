@@ -1,3 +1,11 @@
+# Admin SPA build stage
+FROM node:22-slim AS admin-builder
+WORKDIR /app/admin
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci
+COPY admin/ .
+RUN npm run build
+
 # Build stage
 FROM rust:1.88-slim AS builder
 
@@ -25,9 +33,12 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/gotion-server /usr/local/bin/gotion-server
+COPY --from=admin-builder /app/admin/dist /app/admin/dist
 
 ENV RUST_LOG=info
 
 EXPOSE 3001
+
+WORKDIR /app
 
 CMD ["gotion-server"]
