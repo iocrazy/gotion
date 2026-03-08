@@ -9,6 +9,9 @@ services:
       DATABASE_URL: sqlite:/data/gotion.db?mode=rwc
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      XUNHU_APPID: ${XUNHU_APPID:-}
+      XUNHU_APPSECRET: ${XUNHU_APPSECRET:-}
+      XUNHU_NOTIFY_URL: ${XUNHU_NOTIFY_URL:-}
       RUST_LOG: info
     volumes:
       - server-data:/data
