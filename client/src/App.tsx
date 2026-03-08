@@ -17,7 +17,10 @@ import { MineView } from "./components/MineView";
 import { AnimatePresence } from "motion/react";
 import { SettingsView } from "./components/SettingsView";
 import { SyncView } from "./components/SyncView";
+import { CompletedTasksView } from "./components/CompletedTasksView";
 import { AuthPage } from "./components/AuthPage";
+import { UpgradeModal } from "./components/UpgradeModal";
+import { UpgradeContext } from "./lib/upgradeContext";
 import { setTokenGetter } from "./lib/api";
 import { useAuthStore } from "./stores/authStore";
 import type { AppView } from "./components/BottomNav";
@@ -30,14 +33,24 @@ function App() {
   const { user, loading: authLoading, loadToken } = useAuthStore();
 
   useEffect(() => {
-    loadSettings();
-    loadToken();
+    loadSettings().then(() => loadToken());
   }, [loadSettings, loadToken]);
 
   if (!loaded || authLoading) return null;
   if (!user) return <AuthPage />;
 
-  return <AppContent />;
+  return <AppContentWithUpgrade />;
+}
+
+function AppContentWithUpgrade() {
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  return (
+    <UpgradeContext.Provider value={() => setShowUpgrade(true)}>
+      <AppContent />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+    </UpgradeContext.Provider>
+  );
 }
 
 function AppContent() {
@@ -50,6 +63,7 @@ function AppContent() {
   const [showStarred, setShowStarred] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSync, setShowSync] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
@@ -119,6 +133,10 @@ function AppContent() {
             setIsSidebarOpen(false);
             setShowCreateCategory(true);
           }}
+          onCompletedClick={() => {
+            setIsSidebarOpen(false);
+            setShowCompleted(true);
+          }}
           onEditCategory={(id) => {
             setIsSidebarOpen(false);
             setEditCategoryId(id);
@@ -136,6 +154,13 @@ function AppContent() {
         <AnimatePresence>
           {showStarred && (
             <StarredTasksView onBack={() => setShowStarred(false)} />
+          )}
+        </AnimatePresence>
+
+        {/* Completed Tasks View */}
+        <AnimatePresence>
+          {showCompleted && (
+            <CompletedTasksView onBack={() => setShowCompleted(false)} />
           )}
         </AnimatePresence>
 

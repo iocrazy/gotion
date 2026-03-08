@@ -8,6 +8,7 @@ import {
   Plus,
   LayoutGrid,
   Folder,
+  CheckCircle,
   CheckCircle2,
   Pencil,
 } from "lucide-react";
@@ -21,6 +22,7 @@ interface SidebarMenuProps {
   onSettingsClick: () => void;
   onSyncClick: () => void;
   onStarredClick: () => void;
+  onCompletedClick: () => void;
   onCreateCategory: () => void;
   onEditCategory?: (categoryId: string) => void;
 }
@@ -93,6 +95,7 @@ export function SidebarMenu({
   onSettingsClick,
   onSyncClick,
   onStarredClick,
+  onCompletedClick,
   onCreateCategory,
   onEditCategory,
 }: SidebarMenuProps) {
@@ -145,6 +148,14 @@ export function SidebarMenu({
                 label="Starred Tasks"
                 onClick={() => {
                   onStarredClick();
+                  onClose();
+                }}
+              />
+              <MenuItem
+                icon={<CheckCircle size={20} className="text-green-500" />}
+                label="Completed"
+                onClick={() => {
+                  onCompletedClick();
                   onClose();
                 }}
               />

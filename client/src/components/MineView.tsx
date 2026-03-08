@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { Settings, ChevronRight, Crown, LogOut, User } from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
 import { useAuthStore } from "../stores/authStore";
+import { useUpgrade } from "../lib/upgradeContext";
+import { format } from "date-fns";
 
 interface MineViewProps {
   onSettingsClick: () => void;
@@ -16,7 +18,9 @@ const DAILY_CHART_PLACEHOLDER_HEIGHTS = [20, 40, 15, 60, 35, 25, 45];
 export function MineView({ onSettingsClick }: MineViewProps) {
   const tasks = useTaskStore((s) => s.tasks);
   const user = useAuthStore((s) => s.user);
+  const isPro = useAuthStore((s) => s.isPro);
   const logout = useAuthStore((s) => s.logout);
+  const openUpgrade = useUpgrade();
 
   const completedCount = useMemo(
     () => tasks.filter((t) => t.status === "done").length,
@@ -57,23 +61,46 @@ export function MineView({ onSettingsClick }: MineViewProps) {
         )}
 
         {/* Premium Banner */}
-        <div className="relative bg-gradient-to-r from-[#F06A6A] to-[#E55555] rounded-2xl p-5 text-white overflow-hidden">
-          {/* Decorative circles */}
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-sm" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 blur-sm" />
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Crown size={24} className="text-yellow-300" />
-              <div>
-                <p className="font-semibold text-lg">You are Premium</p>
-                <p className="text-white/80 text-sm">
-                  Enjoy all premium features
-                </p>
+        {isPro() ? (
+          <div className="relative bg-gradient-to-r from-[#F06A6A] to-[#E55555] rounded-2xl p-5 text-white overflow-hidden">
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-sm" />
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 blur-sm" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crown size={24} className="text-yellow-300" />
+                <div>
+                  <p className="font-semibold text-lg">You are Premium</p>
+                  <p className="text-white/80 text-sm">
+                    {user?.subscription?.expires_at
+                      ? `Expires ${format(new Date(user.subscription.expires_at), "MMM d, yyyy")}`
+                      : "Enjoy all premium features"}
+                  </p>
+                </div>
               </div>
+              <ChevronRight size={20} className="text-white/70" />
             </div>
-            <ChevronRight size={20} className="text-white/70" />
           </div>
-        </div>
+        ) : (
+          <button
+            onClick={openUpgrade}
+            className="relative w-full bg-gradient-to-r from-orange-400 to-red-400 rounded-2xl p-5 text-white overflow-hidden text-left"
+          >
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-sm" />
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 blur-sm" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crown size={24} className="text-yellow-300" />
+                <div>
+                  <p className="font-semibold text-lg">Upgrade to Pro</p>
+                  <p className="text-white/80 text-sm">
+                    From &#165;9.9/month
+                  </p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-white/70" />
+            </div>
+          </button>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">

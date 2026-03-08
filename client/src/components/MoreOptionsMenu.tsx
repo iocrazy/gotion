@@ -1,13 +1,38 @@
 import { useState } from "react";
 import {
   ListChecks,
-  CornerDownRight,
   Crown,
   ChevronUp,
   ChevronDown,
   Filter,
   Check,
 } from "lucide-react";
+import { useAuthStore } from "../stores/authStore";
+import { useUpgrade } from "../lib/upgradeContext";
+
+const SubtaskIcon = ({
+  size = 20,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="7" cy="5" r="2" fill="currentColor" />
+    <path d="M7 7v12h10" />
+    <path d="M7 13h10" />
+  </svg>
+);
 
 // StatusFilter is now an array of selected notion_status values. Empty = show all.
 export type StatusFilter = string[];
@@ -99,6 +124,8 @@ export function MoreOptionsMenu({
   statusFilter,
   onStatusFilterChange,
 }: MoreOptionsMenuProps) {
+  const isPro = useAuthStore((s) => s.isPro);
+  const openUpgrade = useUpgrade();
   const [showSortOptions, setShowSortOptions] = useState(true);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
 
@@ -156,22 +183,27 @@ export function MoreOptionsMenu({
           <span className="text-gray-800 text-[15px]">Select tasks</span>
         </button>
 
-        <div className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
+        <div
+          className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+          onClick={isPro() ? undefined : openUpgrade}
+        >
           <div className="flex items-center gap-4">
-            <CornerDownRight size={20} className="text-gray-600" />
+            <SubtaskIcon size={20} className="text-gray-600" />
             <div className="flex items-center gap-1">
               <span className="text-gray-800 text-[15px]">Show Subtasks</span>
-              <Crown
-                size={14}
-                className="text-orange-400 fill-orange-400"
-              />
+              {!isPro() && (
+                <Crown
+                  size={14}
+                  className="text-orange-400 fill-orange-400"
+                />
+              )}
             </div>
           </div>
           <button
             className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
               showSubtasks ? "bg-blue-500" : "bg-gray-300"
             }`}
-            onClick={onToggleSubtasks}
+            onClick={isPro() ? onToggleSubtasks : openUpgrade}
           >
             <div
               className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
@@ -333,12 +365,16 @@ export function MoreOptionsMenu({
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (option.id === "flag_color" && !isPro()) {
+                      openUpgrade();
+                      return;
+                    }
                     onSortChange(option.id);
                     setShowSortOptions(false);
                   }}
                 >
                   {option.label}
-                  {option.id === "flag_color" && (
+                  {option.id === "flag_color" && !isPro() && (
                     <Crown
                       size={14}
                       className="text-orange-400 fill-orange-400"

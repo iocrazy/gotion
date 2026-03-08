@@ -8,6 +8,9 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useAuthStore } from "../stores/authStore";
+import { useUpgrade } from "../lib/upgradeContext";
+import { ProBadge } from "./ProBadge";
 import { SettingItem } from "./ui/SettingItem";
 
 interface SettingsViewProps {
@@ -15,6 +18,8 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ onClose }: SettingsViewProps) {
+  const isPro = useAuthStore((s) => s.isPro);
+  const openUpgrade = useUpgrade();
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
@@ -63,10 +68,11 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               theme === "light" ? <Sun size={20} /> : <Moon size={20} />
             }
             label="Theme"
-            onClick={handleThemeToggle}
+            onClick={isPro() ? handleThemeToggle : openUpgrade}
             right={
-              <span className="text-sm text-gray-500 capitalize">
+              <span className="flex items-center gap-1.5 text-sm text-gray-500 capitalize">
                 {theme}
+                <ProBadge onClick={openUpgrade} />
               </span>
             }
           />

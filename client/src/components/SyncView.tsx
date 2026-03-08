@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useAuthStore } from "../stores/authStore";
+import { useUpgrade } from "../lib/upgradeContext";
+import { Crown } from "lucide-react";
 import type { SyncStatus } from "../hooks/useWebSocket";
 
 interface SyncViewProps {
@@ -20,6 +23,9 @@ interface SyncViewProps {
 }
 
 export function SyncView({ onClose, syncStatus }: SyncViewProps) {
+  const isPro = useAuthStore((s) => s.isPro);
+  const openUpgrade = useUpgrade();
+
   // Server URL state
   const serverUrl = useSettingsStore((s) => s.serverUrl);
   const setServerUrl = useSettingsStore((s) => s.setServerUrl);
@@ -48,6 +54,7 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
   // Notion config state
   const [notionToken, setNotionToken] = useState("");
   const [notionDbId, setNotionDbId] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
   const [notionTokenConfigured, setNotionTokenConfigured] = useState(false);
   const [notionTokenPreview, setNotionTokenPreview] = useState("");
   const [notionTestResult, setNotionTestResult] = useState<{
@@ -83,6 +90,7 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
       setNotionTokenConfigured(cfg.token_configured);
       setNotionTokenPreview(cfg.token_preview);
       setNotionDbId(cfg.database_id);
+      setWebhookSecret(cfg.webhook_secret ?? "");
       if (cfg.field_map) setFieldMap(cfg.field_map);
     }).catch(() => {});
   }, []);
@@ -144,14 +152,16 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
     setConnSaving(true);
     setNotionTestResult(null);
     try {
-      const updates: { token?: string; database_id?: string } = {};
+      const updates: { token?: string; database_id?: string; webhook_secret?: string } = {};
       if (notionToken.trim()) updates.token = notionToken.trim();
       if (notionDbId.trim()) updates.database_id = notionDbId.trim();
+      updates.webhook_secret = webhookSecret.trim();
       await api.updateNotionConfig(updates);
       const cfg = await api.getNotionConfig();
       setNotionTokenConfigured(cfg.token_configured);
       setNotionTokenPreview(cfg.token_preview);
       setNotionDbId(cfg.database_id);
+      setWebhookSecret(cfg.webhook_secret ?? "");
       setNotionToken("");
       setNotionTestResult({ success: true, message: "Connection saved" });
     } catch (e) {
@@ -324,6 +334,35 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
               className="w-full text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 outline-none font-mono"
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             />
+          </div>
+
+          {/* Webhook Secret */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <label className="text-sm text-gray-500 mb-1 block">
+              Webhook Secret
+            </label>
+            {isPro() ? (
+              <>
+                <p className="text-xs text-gray-400 mb-1">
+                  Set in Notion automation as custom header: X-Webhook-Secret
+                </p>
+                <input
+                  type="text"
+                  value={webhookSecret}
+                  onChange={(e) => setWebhookSecret(e.target.value)}
+                  className="w-full text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 outline-none font-mono"
+                  placeholder="Leave empty to allow public webhook"
+                />
+              </>
+            ) : (
+              <button
+                onClick={openUpgrade}
+                className="w-full flex items-center justify-center gap-2 text-sm font-medium text-orange-500 bg-orange-50 rounded-lg px-3 py-2.5 hover:bg-orange-100 transition-colors"
+              >
+                <Crown size={16} className="fill-orange-400 text-orange-400" />
+                Upgrade to Pro for Webhook
+              </button>
+            )}
           </div>
 
           {/* Save + Test buttons */}
