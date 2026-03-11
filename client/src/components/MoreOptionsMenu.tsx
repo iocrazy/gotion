@@ -6,9 +6,11 @@ import {
   ChevronDown,
   Filter,
   Check,
+  Palette,
 } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
+import { ThemeModal } from "./ThemeModal";
 
 const SubtaskIcon = ({
   size = 20,
@@ -128,6 +130,7 @@ export function MoreOptionsMenu({
   const openUpgrade = useUpgrade();
   const [showSortOptions, setShowSortOptions] = useState(true);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   const sortOptions: { id: SortOption; label: string }[] = [
     { id: "due_date", label: "Due date & Time" },
@@ -181,6 +184,14 @@ export function MoreOptionsMenu({
         <button className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors">
           <ListChecks size={20} className="text-gray-600" />
           <span className="text-gray-800 text-[15px]">Select tasks</span>
+        </button>
+
+        <button
+          className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors"
+          onClick={() => setShowThemeModal(true)}
+        >
+          <Palette size={20} className="text-gray-600" />
+          <span className="text-gray-800 text-[15px]">Theme</span>
         </button>
 
         <div
@@ -386,6 +397,9 @@ export function MoreOptionsMenu({
           )}
         </div>
       </div>
+      {showThemeModal && (
+        <ThemeModal onClose={() => setShowThemeModal(false)} />
+      )}
     </div>
   );
 }
