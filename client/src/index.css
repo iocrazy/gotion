@@ -1,35 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --bg-base: #0A0A0F;
-  --bg-surface: #12121A;
-  --bg-hover: #1A1A25;
-  --text-primary: rgba(255,255,255,0.90);
-  --text-secondary: rgba(255,255,255,0.45);
-  --text-muted: rgba(255,255,255,0.25);
-  --border: rgba(255,255,255,0.06);
-  --accent: #DC2626;
-  --accent-dim: rgba(220,38,38,0.15);
-  --done: #34D399;
-  --danger: #EF4444;
-  --warn: #FBBF24;
-}
-
-:root[data-theme="light"] {
-  --bg-base: #F5F5F7;
-  --bg-surface: #FFFFFF;
-  --bg-hover: #F0F0F2;
-  --text-primary: #1F2937;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --border: #E5E7EB;
-  --accent: #DC2626;
-  --accent-dim: rgba(220,38,38,0.08);
-  --done: #10B981;
-  --danger: #EF4444;
-  --warn: #F59E0B;
-}
-
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -89,4 +59,26 @@ html, body, #root {
 
 input::placeholder {
   color: var(--text-muted);
+}
+
+/* Neobrutalism theme special styles */
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&display=swap');
+
+:root[data-theme-style="neobrutalism"] {
+  /* Dot grid background */
+  background-image: radial-gradient(#e5e7eb 1px, transparent 1px) !important;
+  background-size: 24px 24px;
+}
+
+:root[data-theme-style="neobrutalism"] * {
+  border-color: var(--border);
+}
+
+:root[data-theme-style="neobrutalism"] button,
+:root[data-theme-style="neobrutalism"] [class*="rounded"] {
+  border-radius: 12px 4px 16px 4px / 4px 16px 4px 12px;
+}
+
+:root[data-theme-style="neobrutalism"] [class*="shadow"] {
+  box-shadow: 3px 3px 0px var(--border);
 }
