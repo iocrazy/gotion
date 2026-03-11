@@ -8,9 +8,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useSettingsStore } from "../stores/settingsStore";
-import { useAuthStore } from "../stores/authStore";
-import { useUpgrade } from "../lib/upgradeContext";
-import { ProBadge } from "./ProBadge";
+import { getThemeById } from "../lib/themes";
 import { SettingItem } from "./ui/SettingItem";
 
 interface SettingsViewProps {
@@ -18,17 +16,10 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ onClose }: SettingsViewProps) {
-  const isPro = useAuthStore((s) => s.isPro);
-  const openUpgrade = useUpgrade();
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
+  const themeId = useSettingsStore((s) => s.themeId);
+  const currentTheme = getThemeById(themeId);
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
   const setBgOpacity = useSettingsStore((s) => s.setBgOpacity);
-
-  const handleThemeToggle = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-  };
 
   const handleOpacityChange = (value: string) => {
     const parsed = parseFloat(value);
@@ -65,14 +56,12 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {/* Theme */}
           <SettingItem
             icon={
-              theme === "light" ? <Sun size={20} /> : <Moon size={20} />
+              themeId === "dark" ? <Moon size={20} /> : <Sun size={20} />
             }
             label="Theme"
-            onClick={isPro() ? handleThemeToggle : openUpgrade}
             right={
               <span className="flex items-center gap-1.5 text-sm text-gray-500 capitalize">
-                {theme}
-                <ProBadge onClick={openUpgrade} />
+                {currentTheme.name}
               </span>
             }
           />
