@@ -1,27 +1,22 @@
 import { create } from "zustand";
 import { isTauri, tauriInvoke } from "../lib/tauri";
-
-type Theme = "dark" | "light";
+import { getThemeById, applyTheme } from "../lib/themes";
 
 interface SettingsState {
   serverUrl: string;
   bgOpacity: number;
-  theme: Theme;
+  themeId: string;
   loaded: boolean;
   loadSettings: () => Promise<void>;
   setServerUrl: (url: string) => Promise<void>;
   setBgOpacity: (opacity: number) => Promise<void>;
-  setTheme: (theme: Theme) => Promise<void>;
-}
-
-function applyTheme(theme: Theme) {
-  document.documentElement.dataset.theme = theme === "light" ? "light" : "";
+  setTheme: (themeId: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   serverUrl: import.meta.env.VITE_SERVER_URL || "https://gotion.heygo.cn:88",
   bgOpacity: 1.0,
-  theme: "light",
+  themeId: "light",
   loaded: false,
 
   loadSettings: async () => {
@@ -29,23 +24,28 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       try {
         const json = await tauriInvoke<string>("get_settings");
         const settings = JSON.parse(json);
-        const theme: Theme = settings.theme === "light" ? "light" : "dark";
+        // Migration: support old "theme" field
+        const themeId: string = settings.themeId ?? settings.theme ?? "light";
+        const theme = getThemeById(themeId);
         applyTheme(theme);
         set({
           serverUrl: settings.server_url,
           bgOpacity: settings.bg_opacity ?? 1.0,
-          theme,
+          themeId: theme.id,
           loaded: true,
         });
       } catch (e) {
         console.error("Failed to load settings:", e);
+        applyTheme(getThemeById("light"));
         set({ loaded: true });
       }
     } else {
       const savedUrl = localStorage.getItem("gotion_serverUrl");
-      applyTheme("light");
+      const savedThemeId = localStorage.getItem("gotion_theme_id") ?? "light";
+      const theme = getThemeById(savedThemeId);
+      applyTheme(theme);
       set({
-        theme: "light",
+        themeId: theme.id,
         loaded: true,
         ...(savedUrl ? { serverUrl: savedUrl } : {}),
       });
@@ -82,17 +82,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
   },
 
-  setTheme: async (theme: Theme) => {
+  setTheme: async (themeId: string) => {
+    const theme = getThemeById(themeId);
     applyTheme(theme);
-    set({ theme });
+    set({ themeId: theme.id });
     if (isTauri()) {
       try {
         await tauriInvoke("save_settings", {
-          settingsJson: JSON.stringify({ theme }),
+          settingsJson: JSON.stringify({ themeId: theme.id }),
         });
       } catch (e) {
         console.error("Failed to save settings:", e);
       }
+    } else {
+      localStorage.setItem("gotion_theme_id", theme.id);
     }
   },
 }));
