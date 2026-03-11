@@ -26,6 +26,8 @@ Gotion/
 ├── client/
 │   ├── src-tauri/          # Tauri Rust: window control, SQLite cache, offline queue
 │   └── src/                # React frontend: components, hooks, stores
+├── website/              # Web official site: Landing + Auth + Pricing + Admin Dashboard
+│   └── src/              # React SPA deployed on Cloudflare Pages
 ├── deploy/                 # NAS deployment config
 ├── .github/workflows/      # CI/CD (build → GHCR → SSH deploy to NAS)
 ├── docker-compose.yml      # Local development
@@ -55,6 +57,7 @@ Server (via environment or Docker):
 - `NOTION_TOKEN=` (optional, configurable via Settings UI)
 - `NOTION_DATABASE_ID=` (optional, configurable via Settings UI)
 - `RUST_LOG=info`
+- `WEBSITE_ORIGIN=https://gotion.pages.dev` (Cloudflare Pages origin for CORS)
 
 ## Key Conventions
 
