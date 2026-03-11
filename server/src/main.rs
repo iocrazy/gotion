@@ -10,7 +10,6 @@ use std::sync::Arc;
 use api::AppState;
 use sqlx::sqlite::SqlitePoolOptions;
 use tower_http::cors::CorsLayer;
-use tower_http::services::{ServeDir, ServeFile};
 
 use sync::notion_client::NotionClient;
 
@@ -148,19 +147,30 @@ async fn main() {
         email_service,
     };
 
-    let admin_dir = std::path::Path::new("./admin/dist");
-    let app = if admin_dir.exists() {
-        tracing::info!("Serving admin SPA from ./admin/dist");
-        let serve_admin = ServeDir::new("./admin/dist")
-            .not_found_service(ServeFile::new("./admin/dist/index.html"));
-        api::router(state)
-            .nest_service("/admin", serve_admin)
-            .layer(CorsLayer::permissive())
-    } else {
-        tracing::info!("Admin SPA not found at ./admin/dist, skipping");
-        api::router(state)
-            .layer(CorsLayer::permissive())
-    };
+    let website_origin = std::env::var("WEBSITE_ORIGIN")
+        .unwrap_or_else(|_| "http://localhost:5175".into());
+
+    let cors = CorsLayer::new()
+        .allow_origin(
+            website_origin
+                .split(',')
+                .filter_map(|s| s.trim().parse().ok())
+                .collect::<Vec<_>>(),
+        )
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
+        .allow_headers([
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::ACCEPT,
+        ]);
+
+    let app = api::router(state).layer(cors);
 
     let addr = "0.0.0.0:3001";
     tracing::info!("Server listening on {addr}");
