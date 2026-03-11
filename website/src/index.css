@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-hand: "Patrick Hand", cursive, sans-serif;
+  --font-marker: "Permanent Marker", cursive, sans-serif;
+
+  --color-bg: #fffdf8;
+  --color-ink: #18181b;
+  --color-paper: #ffffff;
+  --color-accent: #fcd34d; /* Highlighter Yellow */
+  --color-accent-hover: #fbbf24;
+  --color-secondary: #a5f3fc; /* Cyan */
+  --color-tertiary: #fbcfe8; /* Pink */
+  --color-border: #18181b;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-hand antialiased selection:bg-accent selection:text-ink;
+    background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+@layer utilities {
+  .sketchy-border {
+    border: 2px solid var(--color-border);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .sketchy-border-sm {
+    border: 2px solid var(--color-border);
+    border-radius: 25px 5px 22px 5px / 5px 22px 5px 25px;
+  }
+
+  .sketchy-box {
+     box-shadow: 2px 3px 0px 0px var(--color-ink);
+  }
+
+  .sketchy-box-hover:hover {
+     transform: translate(-1px, -1px);
+     box-shadow: 4px 5px 0px 0px var(--color-ink);
+  }
+
+  .highlighter {
+    background: linear-gradient(120deg, rgba(252, 211, 77, 0) 0%, rgba(252, 211, 77, 0.8) 10%, rgba(252, 211, 77, 0.6) 90%, rgba(252, 211, 77, 0) 100%);
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 40%;
+  }
+}
