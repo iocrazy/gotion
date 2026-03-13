@@ -11,6 +11,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM: ${RESEND_FROM:-noreply@gotion.heygo.cn}
       SERVER_URL: ${SERVER_URL:-https://gotion.heygo.cn:88}
+      WEBSITE_ORIGIN: ${WEBSITE_ORIGIN:-https://gotion.pages.dev}
       RUST_LOG: info
     volumes:
       - gotion-data:/data

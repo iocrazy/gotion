@@ -12,6 +12,7 @@ services:
       XUNHU_APPID: ${XUNHU_APPID:-}
       XUNHU_APPSECRET: ${XUNHU_APPSECRET:-}
       XUNHU_NOTIFY_URL: ${XUNHU_NOTIFY_URL:-}
+      WEBSITE_ORIGIN: ${WEBSITE_ORIGIN:-http://localhost:5175}
       RUST_LOG: info
     volumes:
       - server-data:/data
