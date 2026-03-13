@@ -103,6 +103,11 @@ async fn main() {
         .await
         .ok();
 
+    sqlx::raw_sql(include_str!("../migrations/009_password_resets.sql"))
+        .execute(&pool)
+        .await
+        .ok();
+
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB
