@@ -443,7 +443,7 @@ async fn get_subscription(
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/payment/create", post(create_payment))
-        .route("/api/payment/status/:order_no", get(payment_status))
+        .route("/api/payment/status/{order_no}", get(payment_status))
         .route("/api/payment/notify", post(payment_notify))
         .route("/api/subscription", get(get_subscription))
 }
