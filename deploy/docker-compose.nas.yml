@@ -3,15 +3,11 @@ services:
     image: ghcr.io/iocrazy/gotion-server:latest
     container_name: gotion-server
     restart: unless-stopped
+    env_file: .env
     ports:
       - "3001:3001"
     environment:
       DATABASE_URL: sqlite:/data/gotion.db?mode=rwc
-      JWT_SECRET: ${JWT_SECRET}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-noreply@gotion.heygo.cn}
-      SERVER_URL: ${SERVER_URL:-https://gotion.heygo.cn:88}
-      WEBSITE_ORIGIN: ${WEBSITE_ORIGIN:-https://gotion.pages.dev}
       RUST_LOG: info
     volumes:
       - gotion-data:/data

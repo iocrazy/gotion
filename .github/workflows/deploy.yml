@@ -47,6 +47,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Copy compose file to NAS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.NAS_HOST }}
+          port: ${{ secrets.NAS_SSH_PORT }}
+          username: ${{ secrets.NAS_USER }}
+          key: ${{ secrets.NAS_SSH_KEY }}
+          source: "deploy/docker-compose.nas.yml"
+          target: ${{ secrets.NAS_DEPLOY_PATH }}
+          strip_components: 1
+
       - name: Deploy to NAS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -60,10 +71,22 @@ jobs:
             export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
             sudo docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             cd ${{ secrets.NAS_DEPLOY_PATH }}
-            echo "=== Current compose file ==="
-            cat docker-compose.yml || cat docker-compose.nas.yml || echo "No compose file found"
-            echo "=== Docker compose up ==="
-            sudo docker compose up -d --force-recreate
+            # Remove legacy compose file if exists
+            rm -f docker-compose.yml
+            # Create .env from secrets if not exists
+            if [ ! -f .env ]; then
+              cat > .env << 'ENVEOF'
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            RESEND_FROM=noreply@gotion.heygo.cn
+            SERVER_URL=https://gotion.heygo.cn:88
+            WEBSITE_ORIGIN=https://gotion.pages.dev
+            XUNHU_APPID=${{ secrets.XUNHU_APPID }}
+            XUNHU_APPSECRET=${{ secrets.XUNHU_APPSECRET }}
+            XUNHU_NOTIFY_URL=${{ secrets.XUNHU_NOTIFY_URL }}
+            ENVEOF
+            fi
+            sudo docker compose -f docker-compose.nas.yml up -d --force-recreate
             sleep 5
             echo "=== Container status ==="
             sudo docker ps -a --filter name=gotion

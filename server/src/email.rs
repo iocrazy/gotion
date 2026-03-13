@@ -87,11 +87,11 @@ impl EmailService {
         reset_url: &str,
     ) -> Result<(), String> {
         if !self.is_configured() {
-            tracing::warn!(
-                "Email service not configured, skipping password reset email to {}",
+            tracing::error!(
+                "Email service not configured, cannot send password reset email to {}",
                 to_email
             );
-            return Ok(());
+            return Err("Email service is not configured. Please set RESEND_API_KEY.".into());
         }
 
         let body = serde_json::json!({
