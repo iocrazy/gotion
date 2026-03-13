@@ -145,6 +145,17 @@ pub struct ChangePasswordInput {
     pub new_password: String,
 }
 
+#[derive(Deserialize)]
+pub struct ForgotPasswordInput {
+    pub email: String,
+}
+
+#[derive(Deserialize)]
+pub struct ResetPasswordInput {
+    pub token: String,
+    pub new_password: String,
+}
+
 // ---------------------------------------------------------------------------
 // Password helpers
 // ---------------------------------------------------------------------------
@@ -405,6 +416,91 @@ async fn change_password(
     ))
 }
 
+async fn forgot_password(
+    State(state): State<AppState>,
+    Json(input): Json<ForgotPasswordInput>,
+) -> AuthResult<MessageResponse> {
+    // Always return the same message to prevent email enumeration
+    let response_msg = "If an account with that email exists, a reset link has been sent.";
+
+    // Look up user
+    let user_row = db::users::get_user_by_email(&state.pool, &input.email)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?;
+
+    if let Some(user) = user_row {
+        // Only send if email is verified and account is not disabled
+        if user.email_verified && !user.disabled {
+            // Delete old tokens for this user
+            let _ = db::password_resets::delete_by_user(&state.pool, &user.id).await;
+
+            // Create new token
+            match db::password_resets::create(&state.pool, &user.id).await {
+                Ok(token) => {
+                    let website_origin = std::env::var("WEBSITE_ORIGIN")
+                        .unwrap_or_else(|_| "https://gotion.pages.dev".into());
+                    // Take only the first origin if comma-separated
+                    let website_url = website_origin.split(',').next().unwrap_or("https://gotion.pages.dev").trim();
+                    let reset_url = format!("{}/reset-password?token={}", website_url, token);
+
+                    if let Err(e) = state.email_service.send_password_reset(&user.email, &reset_url).await {
+                        tracing::error!("Failed to send password reset email: {e}");
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to create password reset token: {e}");
+                }
+            }
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(MessageResponse {
+            message: response_msg.into(),
+        }),
+    ))
+}
+
+async fn reset_password(
+    State(state): State<AppState>,
+    Json(input): Json<ResetPasswordInput>,
+) -> AuthResult<MessageResponse> {
+    if input.new_password.len() < 8 {
+        return Err(err_msg(
+            StatusCode::BAD_REQUEST,
+            "Password must be at least 8 characters",
+        ));
+    }
+
+    // Look up token
+    let (reset_id, user_id) = db::password_resets::get_by_token(&state.pool, &input.token)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| err_msg(StatusCode::BAD_REQUEST, "Invalid or expired reset token"))?;
+
+    // Hash new password
+    let new_hash = hash_password(&input.new_password)
+        .map_err(|e| err_msg(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // Update password
+    db::users::update_password(&state.pool, &user_id, &new_hash)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to update password"))?;
+
+    // Delete the used token
+    let _ = db::password_resets::delete(&state.pool, &reset_id).await;
+
+    tracing::info!("Password reset completed for user {user_id}");
+
+    Ok((
+        StatusCode::OK,
+        Json(MessageResponse {
+            message: "Password reset successful. You can now log in with your new password.".into(),
+        }),
+    ))
+}
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -416,4 +512,6 @@ pub fn router() -> Router<AppState> {
         .route("/api/auth/verify-email", get(verify_email))
         .route("/api/auth/me", get(me))
         .route("/api/auth/password", put(change_password))
+        .route("/api/auth/forgot-password", post(forgot_password))
+        .route("/api/auth/reset-password", post(reset_password))
 }
