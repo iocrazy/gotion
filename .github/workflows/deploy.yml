@@ -6,6 +6,7 @@ on:
     paths:
       - 'server/**'
       - 'shared/**'
+      - 'deploy/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/deploy.yml'
@@ -46,6 +47,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Sync deploy config to NAS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.NAS_HOST }}
+          port: ${{ secrets.NAS_SSH_PORT }}
+          username: ${{ secrets.NAS_USER }}
+          key: ${{ secrets.NAS_SSH_KEY }}
+          source: "deploy/docker-compose.nas.yml"
+          target: ${{ secrets.NAS_DEPLOY_PATH }}
+          strip_components: 1
+
       - name: Deploy to NAS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -59,5 +71,5 @@ jobs:
             export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
             sudo docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             cd ${{ secrets.NAS_DEPLOY_PATH }}
-            sudo docker compose up -d --force-recreate
+            sudo docker compose -f docker-compose.nas.yml up -d --force-recreate
             sudo docker image prune -f || true
