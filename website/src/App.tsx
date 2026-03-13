@@ -11,6 +11,8 @@ import { DashboardPage } from "./pages/admin/DashboardPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { SubscriptionsPage } from "./pages/admin/SubscriptionsPage";
 import { PaymentsPage } from "./pages/admin/PaymentsPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { useAuth } from "./lib/useAuth";
 import { loadToken, logout } from "./stores/authStore";
 
@@ -73,6 +75,8 @@ export function App() {
             )
           }
         />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/welcome" element={user ? <PostLoginPage /> : <Navigate to="/auth" replace />} />
 
         {/* Admin routes */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Loader2, Github, Twitter } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, Link } from "react-router";
 import * as authStore from "../stores/authStore";
 
 export function AuthPage({ onLoginSuccess }: { onLoginSuccess: (user: any) => void }) {
@@ -12,6 +12,8 @@ export function AuthPage({ onLoginSuccess }: { onLoginSuccess: (user: any) => vo
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const resetSuccess = searchParams.get("reset") === "success";
 
   useEffect(() => {
     setIsLogin(initialMode === "login");
@@ -112,6 +114,27 @@ export function AuthPage({ onLoginSuccess }: { onLoginSuccess: (user: any) => vo
                 className="w-full px-4 py-3 bg-bg border-2 border-ink rounded-xl font-hand text-lg focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-ink/30"
               />
             </div>
+
+            {isLogin && (
+              <div className="text-right -mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-ink/50 font-hand text-base hover:text-ink hover:underline decoration-wavy decoration-1 underline-offset-4 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
+            {resetSuccess && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="bg-green-50 border-2 border-green-200 text-green-700 font-hand text-center text-lg px-4 py-2.5 rounded-xl"
+              >
+                Password reset successful! You can now log in.
+              </motion.div>
+            )}
 
             {error && (
               <motion.p
