@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
           </h1>
           <p className="text-lg font-hand text-ink/60">
             {sent
-              ? "If an account exists, we sent a reset link."
+              ? "We've sent a reset link to your email."
               : "Enter your email and we'll send a reset link."}
           </p>
         </div>

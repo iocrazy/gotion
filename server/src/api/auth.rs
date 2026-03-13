@@ -420,44 +420,46 @@ async fn forgot_password(
     State(state): State<AppState>,
     Json(input): Json<ForgotPasswordInput>,
 ) -> AuthResult<MessageResponse> {
-    // Always return the same message to prevent email enumeration
-    let response_msg = "If an account with that email exists, a reset link has been sent.";
-
-    // Look up user
-    let user_row = db::users::get_user_by_email(&state.pool, &input.email)
+    // Look up user — return error if not found
+    let user = db::users::get_user_by_email(&state.pool, &input.email)
         .await
-        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?;
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| err_msg(StatusCode::NOT_FOUND, "No account found with this email"))?;
 
-    if let Some(user) = user_row {
-        // Only send if email is verified and account is not disabled
-        if user.email_verified && !user.disabled {
-            // Delete old tokens for this user
-            let _ = db::password_resets::delete_by_user(&state.pool, &user.id).await;
-
-            // Create new token
-            match db::password_resets::create(&state.pool, &user.id).await {
-                Ok(token) => {
-                    let website_origin = std::env::var("WEBSITE_ORIGIN")
-                        .unwrap_or_else(|_| "https://gotion.pages.dev".into());
-                    // Take only the first origin if comma-separated
-                    let website_url = website_origin.split(',').next().unwrap_or("https://gotion.pages.dev").trim();
-                    let reset_url = format!("{}/reset-password?token={}", website_url, token);
-
-                    if let Err(e) = state.email_service.send_password_reset(&user.email, &reset_url).await {
-                        tracing::error!("Failed to send password reset email: {e}");
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("Failed to create password reset token: {e}");
-                }
-            }
-        }
+    if !user.email_verified {
+        return Err(err_msg(StatusCode::BAD_REQUEST, "Email not verified. Please verify your email first."));
     }
+    if user.disabled {
+        return Err(err_msg(StatusCode::FORBIDDEN, "Account is disabled"));
+    }
+
+    // Delete old tokens for this user
+    let _ = db::password_resets::delete_by_user(&state.pool, &user.id).await;
+
+    // Create new token
+    let token = db::password_resets::create(&state.pool, &user.id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to create password reset token: {e}");
+            err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create reset token")
+        })?;
+
+    let website_origin = std::env::var("WEBSITE_ORIGIN")
+        .unwrap_or_else(|_| "https://gotion.pages.dev".into());
+    let website_url = website_origin.split(',').next().unwrap_or("https://gotion.pages.dev").trim();
+    let reset_url = format!("{}/reset-password?token={}", website_url, token);
+
+    state.email_service.send_password_reset(&user.email, &reset_url)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to send password reset email: {e}");
+            err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to send reset email")
+        })?;
 
     Ok((
         StatusCode::OK,
         Json(MessageResponse {
-            message: response_msg.into(),
+            message: "Reset link sent to your email.".into(),
         }),
     ))
 }
