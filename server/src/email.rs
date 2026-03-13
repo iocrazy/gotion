@@ -80,4 +80,50 @@ impl EmailService {
         tracing::info!("Verification email sent to {}", to_email);
         Ok(())
     }
+
+    pub async fn send_password_reset(
+        &self,
+        to_email: &str,
+        reset_url: &str,
+    ) -> Result<(), String> {
+        if !self.is_configured() {
+            tracing::warn!(
+                "Email service not configured, skipping password reset email to {}",
+                to_email
+            );
+            return Ok(());
+        }
+
+        let body = serde_json::json!({
+            "from": self.from_email,
+            "to": [to_email],
+            "subject": "Gotion - Reset your password",
+            "html": format!(
+                "<h2>Password Reset</h2>\
+                 <p>You requested a password reset for your Gotion account.</p>\
+                 <p><a href=\"{}\">Reset your password</a></p>\
+                 <p>This link expires in 15 minutes.</p>\
+                 <p>If you didn't request this, you can safely ignore this email.</p>",
+                reset_url
+            ),
+        });
+
+        let res = self
+            .client
+            .post("https://api.resend.com/emails")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send email: {}", e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(format!("Resend API error {}: {}", status, text));
+        }
+
+        tracing::info!("Password reset email sent to {}", to_email);
+        Ok(())
+    }
 }
