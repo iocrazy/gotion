@@ -129,6 +129,22 @@ export async function getMe(): Promise<User> {
   return request<User>("/api/auth/me");
 }
 
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+    requireAuth: false,
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/auth/reset-password", {
+    method: "POST",
+    body: { token, new_password: newPassword },
+    requireAuth: false,
+  });
+}
+
 // --- Admin API ---
 
 export async function getStats(): Promise<Stats> {
