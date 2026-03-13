@@ -133,7 +133,7 @@ async fn main() {
     // Email service (Resend)
     let email_service = match std::env::var("RESEND_API_KEY") {
         Ok(key) => {
-            let from = std::env::var("RESEND_FROM").unwrap_or_else(|_| "noreply@gotion.heygo.cn".into());
+            let from = std::env::var("RESEND_FROM").unwrap_or_else(|_| "Gotion <onboarding@resend.dev>".into());
             let base_url = std::env::var("SERVER_URL").unwrap_or_else(|_| "https://gotion.heygo.cn:88".into());
             tracing::info!("Email verification enabled via Resend");
             email::EmailService::new(key, from, base_url)
