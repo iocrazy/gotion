@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { LogOut, Menu, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { GotionLogo } from "./GotionLogo";
 
 interface NavbarProps {

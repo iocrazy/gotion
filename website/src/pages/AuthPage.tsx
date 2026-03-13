@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Loader2, Github, Twitter } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import * as authStore from "../stores/authStore";
 
 export function AuthPage({ onLoginSuccess }: { onLoginSuccess: (user: any) => void }) {

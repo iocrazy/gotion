@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Database, ArrowRight, Github, Twitter } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Footer } from "../components/Footer";
 
 export function LandingPage() {
