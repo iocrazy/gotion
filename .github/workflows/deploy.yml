@@ -60,5 +60,13 @@ jobs:
             export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
             sudo docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             cd ${{ secrets.NAS_DEPLOY_PATH }}
+            echo "=== Current compose file ==="
+            cat docker-compose.yml || cat docker-compose.nas.yml || echo "No compose file found"
+            echo "=== Docker compose up ==="
             sudo docker compose up -d --force-recreate
+            sleep 5
+            echo "=== Container status ==="
+            sudo docker ps -a --filter name=gotion
+            echo "=== Container logs (last 30 lines) ==="
+            sudo docker logs gotion-server --tail 30 2>&1 || true
             sudo docker image prune -f || true
