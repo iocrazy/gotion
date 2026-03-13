@@ -10,8 +10,10 @@ import {
 let token: string | null = null;
 let user: User | null = null;
 let listeners: Array<() => void> = [];
+let snapshot: { token: string | null; user: User | null } = { token, user };
 
 function notify(): void {
+  snapshot = { token, user };
   listeners.forEach((fn) => fn());
 }
 
@@ -23,7 +25,7 @@ export function subscribe(listener: () => void): () => void {
 }
 
 export function getAuthState(): { token: string | null; user: User | null } {
-  return { token, user };
+  return snapshot;
 }
 
 export async function login(email: string, password: string): Promise<User> {
