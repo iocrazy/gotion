@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useAuthStore } from "../stores/authStore";
 
 type AuthMode = "login" | "register";
@@ -34,6 +35,14 @@ export function AuthPage() {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      await openUrl("https://gotion.pages.dev/forgot-password");
+    } catch {
+      window.open("https://gotion.pages.dev/forgot-password", "_blank");
     }
   };
 
@@ -132,6 +141,19 @@ export function AuthPage() {
                 placeholder="Enter password"
               />
             </div>
+
+            {/* Forgot password (login only) */}
+            {mode === "login" && (
+              <div className="flex justify-end -mt-2">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-[#E74C3C] hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {/* Error message */}
             {error && (
