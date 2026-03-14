@@ -73,14 +73,14 @@ jobs:
             cd ${{ secrets.NAS_DEPLOY_PATH }}
             # Remove legacy compose file if exists
             rm -f docker-compose.yml
-            # Update RESEND_FROM in .env to use Resend test address
+            # Update RESEND_FROM in .env to use verified domain
             if [ -f .env ]; then
-              sed -i 's|RESEND_FROM=.*|RESEND_FROM=Gotion <onboarding@resend.dev>|' .env
+              sed -i 's|RESEND_FROM=.*|RESEND_FROM=Gotion <noreply@gotion.heygo.cn>|' .env
             else
               cat > .env << 'ENVEOF'
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
-            RESEND_FROM=Gotion <onboarding@resend.dev>
+            RESEND_FROM=Gotion <noreply@gotion.heygo.cn>
             SERVER_URL=https://gotion.heygo.cn:88
             WEBSITE_ORIGIN=https://gotion.pages.dev
             XUNHU_APPID=${{ secrets.XUNHU_APPID }}
