@@ -1,15 +1,15 @@
-name: Build Desktop Client
+name: Build & Release Desktop Client
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'client/**'
-      - 'shared/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/build-client.yml'
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
   build:
@@ -21,8 +21,12 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - platform: macos-latest
             target: aarch64-apple-darwin
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -65,14 +69,17 @@ jobs:
         with:
           projectPath: client
           args: --target ${{ matrix.target }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
+          releaseName: 'Gotion ${{ github.ref_type == ''tag'' && github.ref_name || inputs.version }}'
+          releaseBody: |
+            ## Gotion Desktop ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: gotion-${{ matrix.target }}
-          path: |
-            client/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
-            client/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
-            client/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            client/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
-          if-no-files-found: ignore
+            ### Downloads
+            - **macOS** (Apple Silicon): `.dmg`
+            - **Ubuntu/Linux**: `.deb` / `.AppImage`
+            - **Windows**: `.msi` / `.exe`
+
+            ### Changes
+            See [commit history](https://github.com/${{ github.repository }}/commits/${{ github.sha }}) for details.
+          releaseDraft: false
+          prerelease: false
