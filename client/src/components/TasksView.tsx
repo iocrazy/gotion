@@ -69,12 +69,12 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header */}
-      <div className="px-6 pt-4 pb-3 flex items-center justify-between">
-        <button onClick={onMenuClick} className="text-gray-600">
+      {/* Header — drag region for window movement */}
+      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between cursor-move">
+        <button onClick={onMenuClick} className="text-gray-600 cursor-pointer">
           <Menu size={24} />
         </button>
-        <h1 className="text-xl font-semibold text-gray-800">All Tasks</h1>
+        <h1 data-tauri-drag-region className="text-xl font-semibold text-gray-800">All Tasks</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={togglePin}
