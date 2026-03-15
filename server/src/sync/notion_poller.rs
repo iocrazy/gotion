@@ -26,16 +26,20 @@ pub async fn start_polling(pool: SqlitePool, client: Arc<NotionClient>, broadcas
         };
 
         if !client.is_configured().await {
-            tracing::debug!("Notion not configured, skipping poll");
+            tracing::info!("Notion not configured, skipping poll");
             continue;
         }
 
-        tracing::debug!("Polling Notion for changes...");
+        tracing::info!("Polling Notion for changes (since={:?})...", since);
 
         match do_sync(&pool, &client, &broadcast, since.as_deref()).await {
             Ok(count) => {
                 *last_sync.lock().await = Some(Utc::now());
-                tracing::debug!("Notion sync complete, processed {} pages", count);
+                if count > 0 {
+                    tracing::info!("Notion sync complete, processed {} pages", count);
+                } else {
+                    tracing::debug!("Notion sync complete, no changes");
+                }
             }
             Err(e) => {
                 tracing::error!("Notion sync error: {}", e);
@@ -175,6 +179,13 @@ async fn do_sync(
 
         match existing {
             Some(local_task) => {
+                tracing::info!(
+                    "Merging page '{}' (notion_edited={}) with local '{}' (title_updated_at={})",
+                    notion_title,
+                    notion_edited,
+                    local_task.title,
+                    local_task.title_updated_at,
+                );
                 let merge = conflict::merge_task(
                     &local_task,
                     &notion_title,
@@ -192,6 +203,11 @@ async fn do_sync(
                     && local_task.parent_id != notion_parent_id;
                 let notion_status_changed =
                     local_task.notion_status.as_deref() != Some(&notion_status_raw);
+
+                tracing::info!(
+                    "Merge result: local_changed={}, notify_notion={:?}, cat_changed={}, starred_changed={}, parent_changed={}",
+                    merge.local_changed, merge.notify_notion, category_changed, starred_changed, parent_changed,
+                );
 
                 if merge.local_changed || category_changed || starred_changed || parent_changed || notion_status_changed {
                     let cat_arg = if category_changed {
