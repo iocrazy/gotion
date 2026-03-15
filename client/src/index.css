@@ -61,6 +61,121 @@ input::placeholder {
   color: var(--text-muted);
 }
 
+/* ── Dark theme overrides ── */
+/* Remap common Tailwind hardcoded colors to CSS variables when dark theme is active */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Backgrounds */
+:root[data-theme="dark"] .bg-white {
+  background-color: var(--bg-surface) !important;
+}
+
+:root[data-theme="dark"] .bg-\[\#F5F6F8\],
+:root[data-theme="dark"] .bg-\[\#F5F5F7\] {
+  background-color: var(--bg-base) !important;
+}
+
+:root[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme="dark"] .bg-gray-100 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme="dark"] .bg-gray-200 {
+  background-color: rgba(255,255,255,0.08) !important;
+}
+
+:root[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme="dark"] .hover\:bg-gray-200:hover {
+  background-color: rgba(255,255,255,0.1) !important;
+}
+
+:root[data-theme="dark"] .active\:bg-gray-50:active {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Text colors */
+:root[data-theme="dark"] .text-gray-800,
+:root[data-theme="dark"] .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .text-gray-700,
+:root[data-theme="dark"] .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .text-gray-500 {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .text-gray-400,
+:root[data-theme="dark"] .text-gray-300 {
+  color: var(--text-muted) !important;
+}
+
+/* Borders */
+:root[data-theme="dark"] .border-gray-200,
+:root[data-theme="dark"] .border-gray-100 {
+  border-color: var(--border) !important;
+}
+
+/* Shadows */
+:root[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.3) !important;
+}
+
+:root[data-theme="dark"] .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3) !important;
+}
+
+:root[data-theme="dark"] .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.3) !important;
+}
+
+:root[data-theme="dark"] .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6) !important;
+}
+
+/* Alert/feedback backgrounds - soften for dark */
+:root[data-theme="dark"] .bg-red-50 {
+  background-color: rgba(239,68,68,0.15) !important;
+}
+:root[data-theme="dark"] .bg-green-50 {
+  background-color: rgba(16,185,129,0.15) !important;
+}
+:root[data-theme="dark"] .bg-orange-50 {
+  background-color: rgba(249,115,22,0.15) !important;
+}
+
+/* Placeholder text */
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Range input */
+:root[data-theme="dark"] input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* Select elements */
+:root[data-theme="dark"] select {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
 /* Neobrutalism theme special styles */
 @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&display=swap');
 

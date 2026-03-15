@@ -131,6 +131,6 @@ export function applyTheme(theme: ThemeDefinition): void {
     delete root.dataset.themeStyle;
   }
 
-  // Remove legacy data-theme attribute
-  delete root.dataset.theme;
+  // Set data-theme for CSS overrides (dark mode, etc.)
+  root.dataset.theme = theme.id;
 }

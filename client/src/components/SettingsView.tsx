@@ -1,14 +1,11 @@
 import { motion } from "motion/react";
 import {
   ChevronLeft,
-  Sun,
-  Moon,
   SlidersHorizontal,
   Info,
   MessageSquare,
 } from "lucide-react";
 import { useSettingsStore } from "../stores/settingsStore";
-import { getThemeById } from "../lib/themes";
 import { SettingItem } from "./ui/SettingItem";
 
 interface SettingsViewProps {
@@ -16,8 +13,6 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ onClose }: SettingsViewProps) {
-  const themeId = useSettingsStore((s) => s.themeId);
-  const currentTheme = getThemeById(themeId);
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
   const setBgOpacity = useSettingsStore((s) => s.setBgOpacity);
 
@@ -53,19 +48,6 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         {/* Customize group */}
         <div className="text-sm text-gray-500 mb-2">Customize</div>
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-          {/* Theme */}
-          <SettingItem
-            icon={
-              themeId === "dark" ? <Moon size={20} /> : <Sun size={20} />
-            }
-            label="Theme"
-            right={
-              <span className="flex items-center gap-1.5 text-sm text-gray-500 capitalize">
-                {currentTheme.name}
-              </span>
-            }
-          />
-
           {/* Background Opacity - custom row */}
           <div className="px-5 py-4 flex items-center gap-4">
             <span className="text-gray-600">

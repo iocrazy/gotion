@@ -60,6 +60,7 @@ pub async fn jwt_auth(
         || path.starts_with("/api/notion/webhook")
         || path.starts_with("/api/payment/notify")
         || path == "/api/admin/reset-password"
+        || path == "/api/admin/gift-pro"
         || path.starts_with("/ws")
         || path.starts_with("/admin")
     {
@@ -162,6 +163,13 @@ pub struct AdminResetPasswordInput {
     pub secret: String,
     pub email: String,
     pub new_password: String,
+}
+
+#[derive(Deserialize)]
+pub struct AdminGiftProInput {
+    pub secret: String,
+    pub email: String,
+    pub days: i64,
 }
 
 // ---------------------------------------------------------------------------
@@ -554,6 +562,56 @@ async fn admin_reset_password(
 }
 
 // ---------------------------------------------------------------------------
+// Admin: gift Pro subscription (JWT_SECRET auth)
+// ---------------------------------------------------------------------------
+
+async fn admin_gift_pro(
+    State(state): State<AppState>,
+    Json(input): Json<AdminGiftProInput>,
+) -> AuthResult<MessageResponse> {
+    if input.secret != state.jwt_secret.0 {
+        return Err(err_msg(StatusCode::FORBIDDEN, "Invalid secret"));
+    }
+
+    if input.days <= 0 {
+        return Err(err_msg(StatusCode::BAD_REQUEST, "days must be positive"));
+    }
+
+    let user_row = db::users::get_user_by_email(&state.pool, &input.email)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| err_msg(StatusCode::NOT_FOUND, "User not found"))?;
+
+    let now = chrono::Utc::now().naive_utc();
+    let current_sub = db::subscriptions::get_subscription(&state.pool, &user_row.id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch subscription"))?;
+
+    let base = current_sub
+        .expires_at
+        .as_deref()
+        .and_then(|s| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").ok())
+        .filter(|exp| *exp > now)
+        .unwrap_or(now);
+
+    let new_expiry = base + chrono::Duration::days(input.days);
+    let expiry_str = new_expiry.format("%Y-%m-%d %H:%M:%S").to_string();
+
+    db::subscriptions::upsert_subscription(&state.pool, &user_row.id, "pro", None, Some(&expiry_str))
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to upsert subscription"))?;
+
+    tracing::info!("Admin gifted Pro to user {} ({}) for {} days, expires {}", user_row.id, input.email, input.days, expiry_str);
+
+    Ok((
+        StatusCode::OK,
+        Json(MessageResponse {
+            message: format!("Pro gifted to {} until {}", input.email, expiry_str),
+        }),
+    ))
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -567,4 +625,5 @@ pub fn router() -> Router<AppState> {
         .route("/api/auth/forgot-password", post(forgot_password))
         .route("/api/auth/reset-password", post(reset_password))
         .route("/api/admin/reset-password", post(admin_reset_password))
+        .route("/api/admin/gift-pro", post(admin_gift_pro))
 }

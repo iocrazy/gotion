@@ -11,10 +11,16 @@ import {
   CheckCircle,
   CheckCircle2,
   Pencil,
+  Sun,
+  Moon,
+  Palette,
 } from "lucide-react";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useTaskStore } from "../stores/taskStore";
+import { useSettingsStore } from "../stores/settingsStore";
+import { getThemeById } from "../lib/themes";
 import { CategoryIcon } from "../lib/categoryIcons";
+import { ThemeModal } from "./ThemeModal";
 
 interface SidebarMenuProps {
   isOpen: boolean;
@@ -100,6 +106,9 @@ export function SidebarMenu({
   onEditCategory,
 }: SidebarMenuProps) {
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(true);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const themeId = useSettingsStore((s) => s.themeId);
+  const currentTheme = getThemeById(themeId);
   const categories = useCategoryStore((s) => s.categories);
   const tasks = useTaskStore((s) => s.tasks);
   const setSelectedCategoryId = useTaskStore((s) => s.setSelectedCategoryId);
@@ -244,8 +253,26 @@ export function SidebarMenu({
                   onClose();
                 }}
               />
+              <MenuItem
+                icon={
+                  themeId === "dark" ? (
+                    <Moon size={20} className="text-blue-400" />
+                  ) : themeId === "neobrutalism" ? (
+                    <Palette size={20} className="text-blue-400" />
+                  ) : (
+                    <Sun size={20} className="text-blue-400" />
+                  )
+                }
+                label={currentTheme.name}
+                onClick={() => setShowThemeModal(true)}
+              />
             </div>
           </motion.div>
+
+          {/* Theme Modal - rendered outside drawer to avoid clipping */}
+          {showThemeModal && (
+            <ThemeModal onClose={() => setShowThemeModal(false)} />
+          )}
         </>
       )}
     </AnimatePresence>
