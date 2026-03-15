@@ -150,11 +150,26 @@ pub async fn mark_payment_paid(
     Ok(())
 }
 
-/// List all subscriptions (admin).
-pub async fn list_subscriptions(pool: &SqlitePool) -> Result<Vec<Subscription>, sqlx::Error> {
-    sqlx::query_as::<_, Subscription>(
-        "SELECT id, user_id, plan, period, expires_at, created_at, updated_at \
-         FROM subscriptions ORDER BY created_at ASC",
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct SubscriptionWithUser {
+    pub id: String,
+    pub user_id: String,
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub plan: String,
+    pub period: Option<String>,
+    pub expires_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// List all subscriptions with user info (admin).
+pub async fn list_subscriptions(pool: &SqlitePool) -> Result<Vec<SubscriptionWithUser>, sqlx::Error> {
+    sqlx::query_as::<_, SubscriptionWithUser>(
+        "SELECT s.id, s.user_id, u.username, u.email, s.plan, s.period, s.expires_at, s.created_at, s.updated_at \
+         FROM subscriptions s \
+         LEFT JOIN users u ON u.id = s.user_id \
+         ORDER BY s.created_at ASC",
     )
     .fetch_all(pool)
     .await

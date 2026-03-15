@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::api::AppState;
 use crate::api::auth::AuthUser;
 use crate::db;
-use crate::db::subscriptions::{Payment, Subscription};
+use crate::db::subscriptions::{Payment, Subscription, SubscriptionWithUser};
 use crate::db::users::User;
 
 // ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ async fn stats(
 async fn list_subscriptions_handler(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
-) -> AdminResult<Vec<Subscription>> {
+) -> AdminResult<Vec<SubscriptionWithUser>> {
     require_admin(&auth_user)?;
 
     let subscriptions = db::subscriptions::list_subscriptions(&state.pool)

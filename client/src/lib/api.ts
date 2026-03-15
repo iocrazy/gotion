@@ -262,11 +262,11 @@ export const api = {
       email: string;
       username: string;
       is_admin: boolean;
-      subscription?: {
-        plan: string;
-        expires_at: string | null;
-        is_pro: boolean;
-      };
+    };
+    subscription: {
+      plan: string;
+      expires_at: string | null;
+      is_pro: boolean;
     };
   }> {
     const res = await fetch(`${getBaseUrl()}/api/auth/login`, {

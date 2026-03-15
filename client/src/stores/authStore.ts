@@ -101,14 +101,15 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
 
   login: async (email: string, password: string) => {
     const res = await api.login(email, password);
-    set({ token: res.token, user: res.user });
+    const user: AuthUser = { ...res.user, subscription: res.subscription };
+    set({ token: res.token, user });
     if (isTauri()) {
       await tauriInvoke("save_auth_token", { token: res.token }).catch(
         () => {},
       );
     } else {
       localStorage.setItem("gotion_token", res.token);
-      localStorage.setItem("gotion_user", JSON.stringify(res.user));
+      localStorage.setItem("gotion_user", JSON.stringify(user));
     }
   },
 

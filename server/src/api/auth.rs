@@ -105,6 +105,7 @@ pub async fn jwt_auth(
 pub struct AuthResponse {
     pub token: String,
     pub user: User,
+    pub subscription: SubscriptionInfo,
 }
 
 #[derive(Serialize)]
@@ -321,11 +322,24 @@ async fn login(
     let token = crate::jwt::create_token(&state.jwt_secret, &user_row.id, user_row.is_admin)
         .map_err(|e| err_msg(StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let sub = db::subscriptions::get_subscription(&state.pool, &user_row.id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch subscription"))?;
+
+    let is_pro = db::subscriptions::is_pro(&state.pool, &user_row.id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to check pro status"))?;
+
     Ok((
         StatusCode::OK,
         Json(AuthResponse {
             token,
             user: User::from(user_row),
+            subscription: SubscriptionInfo {
+                plan: sub.plan,
+                expires_at: sub.expires_at,
+                is_pro,
+            },
         }),
     ))
 }
@@ -355,11 +369,24 @@ async fn verify_email(
     let token = crate::jwt::create_token(&state.jwt_secret, &user_row.id, user_row.is_admin)
         .map_err(|e| err_msg(StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let sub = db::subscriptions::get_subscription(&state.pool, &user_row.id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch subscription"))?;
+
+    let is_pro = db::subscriptions::is_pro(&state.pool, &user_row.id)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to check pro status"))?;
+
     Ok((
         StatusCode::OK,
         Json(AuthResponse {
             token,
             user: User::from(user_row),
+            subscription: SubscriptionInfo {
+                plan: sub.plan,
+                expires_at: sub.expires_at,
+                is_pro,
+            },
         }),
     ))
 }
