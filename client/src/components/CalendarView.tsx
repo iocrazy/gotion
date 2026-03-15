@@ -113,8 +113,8 @@ export function CalendarView({ onSearch, onMenuClick }: CalendarViewProps) {
   return (
     <div className="flex-1 flex flex-col bg-[#F5F6F8] overflow-y-auto">
       {/* Header — drag region for window movement */}
-      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between cursor-move">
-        <button className="relative cursor-pointer" onClick={onMenuClick}>
+      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between">
+        <button className="relative" onClick={onMenuClick}>
           <Menu size={24} className="text-gray-700" />
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-[#F5F6F8]" />
         </button>

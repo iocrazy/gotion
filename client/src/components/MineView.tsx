@@ -30,7 +30,7 @@ export function MineView({ onSettingsClick }: MineViewProps) {
   return (
     <div className="flex-1 flex flex-col bg-[#F5F6F8] overflow-y-auto">
       {/* Header — drag region for window movement */}
-      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between cursor-move">
+      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between">
         <h1 data-tauri-drag-region className="text-2xl font-semibold text-gray-800">Mine</h1>
         <button onClick={onSettingsClick} className="text-gray-500">
           <Settings size={22} />
