@@ -49,9 +49,12 @@ interface TaskItemProps {
   task: Task;
   subTaskCount?: { done: number; total: number };
   onClick: () => void;
+  isSubtask?: boolean;
+  isLastSubtask?: boolean;
+  hasVisibleSubtasks?: boolean;
 }
 
-export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
+export function TaskItem({ task, subTaskCount, onClick, isSubtask, isLastSubtask, hasVisibleSubtasks }: TaskItemProps) {
   const { toggleTaskStatus, deleteTask, updateTask } = useTaskStore();
   const [isCompleted, setIsCompleted] = useState(task.status === "done");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -134,7 +137,7 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
   };
 
   return (
-    <div className="relative mb-3">
+    <div className={`relative ${isSubtask ? (isLastSubtask ? 'mb-0' : 'mb-0') : hasVisibleSubtasks ? 'mb-1' : 'mb-3'}`}>
       {/* Background Actions */}
       <div className="absolute inset-0 flex items-center justify-end pr-2 gap-2 bg-[#F5F6F8] rounded-2xl overflow-hidden">
         <motion.button
@@ -183,7 +186,11 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="relative bg-white rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer"
+        className={`relative flex items-start gap-3 cursor-pointer ${
+          isSubtask
+            ? 'bg-gray-50 rounded-xl p-3 shadow-none'
+            : 'bg-white rounded-2xl p-4 shadow-sm'
+        }`}
         onClick={handleClick}
       >
         <button
@@ -197,21 +204,21 @@ export function TaskItem({ task, subTaskCount, onClick }: TaskItemProps) {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <CheckCircle2
-                size={24}
+                size={isSubtask ? 20 : 24}
                 className="text-gray-400 fill-gray-200"
               />
             </motion.div>
           ) : (
-            <Circle size={24} strokeWidth={1.5} />
+            <Circle size={isSubtask ? 20 : 24} strokeWidth={1.5} />
           )}
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span
-              className={`font-medium ${
+              className={`${isSubtask ? 'text-sm' : 'font-medium'} ${
                 isCompleted
                   ? "text-gray-400 line-through"
-                  : "text-gray-800"
+                  : isSubtask ? "text-gray-600" : "text-gray-800"
               }`}
             >
               {task.title}

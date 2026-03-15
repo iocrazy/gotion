@@ -196,23 +196,33 @@ export function TaskList({ showSubtasks = false, sortBy = "creation_time", statu
               <span className="text-gray-300 text-xs">{groupTasks.length}</span>
             </div>
             <div>
-              {groupTasks.map((task) => (
-                <div key={task.id}>
-                  <TaskItem
-                    task={task}
-                    subTaskCount={subTaskCounts[task.id]}
-                    onClick={() => selectTask(task.id)}
-                  />
-                  {showSubtasks && subTasksByParent[task.id]?.map((sub) => (
-                    <div key={sub.id} className="pl-8">
-                      <TaskItem
-                        task={sub}
-                        onClick={() => selectTask(sub.id)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
+              {groupTasks.map((task) => {
+                const subtasks = showSubtasks ? subTasksByParent[task.id] : undefined;
+                const hasSubtasks = subtasks && subtasks.length > 0;
+                return (
+                  <div key={task.id} className={hasSubtasks ? "mb-3" : ""}>
+                    <TaskItem
+                      task={task}
+                      subTaskCount={subTaskCounts[task.id]}
+                      onClick={() => selectTask(task.id)}
+                      hasVisibleSubtasks={hasSubtasks}
+                    />
+                    {hasSubtasks && (
+                      <div className="ml-6 border-l-2 border-gray-200 pl-2 space-y-0">
+                        {subtasks.map((sub, i) => (
+                          <TaskItem
+                            key={sub.id}
+                            task={sub}
+                            onClick={() => selectTask(sub.id)}
+                            isSubtask
+                            isLastSubtask={i === subtasks.length - 1}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
