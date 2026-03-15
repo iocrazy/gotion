@@ -158,6 +158,7 @@ pub struct ResetPasswordInput {
 
 #[derive(Deserialize)]
 pub struct AdminResetPasswordInput {
+    pub secret: String,
     pub email: String,
     pub new_password: String,
 }
@@ -515,11 +516,11 @@ async fn reset_password(
 
 async fn admin_reset_password(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
     Json(input): Json<AdminResetPasswordInput>,
 ) -> AuthResult<MessageResponse> {
-    if !auth_user.is_admin {
-        return Err(err_msg(StatusCode::FORBIDDEN, "Admin access required"));
+    // Authenticate via JWT_SECRET instead of user login
+    if input.secret != state.jwt_secret.0 {
+        return Err(err_msg(StatusCode::FORBIDDEN, "Invalid secret"));
     }
 
     if input.new_password.len() < 8 {
