@@ -19,6 +19,8 @@ pub struct NotionConfig {
     pub database_id: String,
     /// Field mapping: Notion property name -> Gotion field
     pub field_map: NotionFieldMap,
+    /// Secret for authenticating Notion webhook requests
+    pub webhook_secret: String,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -96,6 +98,7 @@ impl NotionClient {
                 token,
                 database_id,
                 field_map: NotionFieldMap::default(),
+                webhook_secret: String::new(),
             }),
             rate_limiter,
         }
@@ -118,6 +121,7 @@ impl NotionClient {
                         config.field_map = fm;
                     }
                 }
+                "webhook_secret" => config.webhook_secret = row.value,
                 _ => {}
             }
         }
@@ -137,6 +141,7 @@ impl NotionClient {
         token: Option<String>,
         database_id: Option<String>,
         field_map: Option<NotionFieldMap>,
+        webhook_secret: Option<String>,
         pool: &SqlitePool,
     ) {
         let mut config = self.config.write().await;
@@ -153,6 +158,10 @@ impl NotionClient {
             if let Ok(json) = serde_json::to_string(&fm) {
                 Self::upsert_config(pool, "field_map", &json).await;
             }
+        }
+        if let Some(ws) = webhook_secret {
+            config.webhook_secret = ws.clone();
+            Self::upsert_config(pool, "webhook_secret", &ws).await;
         }
     }
 
