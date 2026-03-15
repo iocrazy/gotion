@@ -93,6 +93,10 @@ jobs:
             sleep 5
             echo "=== Container status ==="
             sudo docker ps -a --filter name=gotion
-            echo "=== Container logs (last 30 lines) ==="
+            echo "=== Early logs (first poll start) ==="
             sudo docker logs gotion-server --tail 30 2>&1 || true
+            echo "=== Waiting for first sync cycle (35s) ==="
+            sleep 35
+            echo "=== Full sync logs ==="
+            sudo docker logs gotion-server --tail 80 2>&1 || true
             sudo docker image prune -f || true
