@@ -38,7 +38,12 @@ function App() {
   }, [loadSettings, loadToken]);
 
   if (!loaded || authLoading) return null;
-  if (!user) return <AuthPage />;
+  if (!user) return (
+    <AppShell>
+      <div data-tauri-drag-region className="h-8 shrink-0 cursor-move" />
+      <AuthPage />
+    </AppShell>
+  );
 
   return <AppContentWithUpgrade />;
 }
@@ -68,6 +73,12 @@ function AppContent() {
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const [focusTask, setFocusTask] = useState<{ id: string; title: string } | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
+
+  // Close sidebar first, then open the target view after animation completes
+  const closeSidebarThen = (action: () => void) => {
+    setIsSidebarOpen(false);
+    setTimeout(action, 250);
+  };
 
   return (
     <AppShell>
@@ -119,30 +130,12 @@ function AppContent() {
         <SidebarMenu
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          onSettingsClick={() => {
-            setIsSidebarOpen(false);
-            setShowSettings(true);
-          }}
-          onSyncClick={() => {
-            setIsSidebarOpen(false);
-            setShowSync(true);
-          }}
-          onStarredClick={() => {
-            setIsSidebarOpen(false);
-            setShowStarred(true);
-          }}
-          onCreateCategory={() => {
-            setIsSidebarOpen(false);
-            setShowCreateCategory(true);
-          }}
-          onCompletedClick={() => {
-            setIsSidebarOpen(false);
-            setShowCompleted(true);
-          }}
-          onEditCategory={(id) => {
-            setIsSidebarOpen(false);
-            setEditCategoryId(id);
-          }}
+          onSettingsClick={() => closeSidebarThen(() => setShowSettings(true))}
+          onSyncClick={() => closeSidebarThen(() => setShowSync(true))}
+          onStarredClick={() => closeSidebarThen(() => setShowStarred(true))}
+          onCreateCategory={() => closeSidebarThen(() => setShowCreateCategory(true))}
+          onCompletedClick={() => closeSidebarThen(() => setShowCompleted(true))}
+          onEditCategory={(id) => closeSidebarThen(() => setEditCategoryId(id))}
         />
 
         {/* Search View */}
