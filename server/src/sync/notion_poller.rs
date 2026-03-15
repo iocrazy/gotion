@@ -16,33 +16,38 @@ pub async fn start_polling(pool: SqlitePool, client: Arc<NotionClient>, broadcas
     let last_sync: Arc<Mutex<Option<DateTime<Utc>>>> = Arc::new(Mutex::new(None));
 
     let mut ticker = interval(Duration::from_secs(30));
+    let mut poll_count: u64 = 0;
 
     loop {
         ticker.tick().await;
+        poll_count += 1;
 
+        // Format since as ISO 8601 with Z suffix (Notion-compatible)
         let since = {
             let guard = last_sync.lock().await;
-            guard.map(|t| t.to_rfc3339())
+            guard.map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
         };
 
         if !client.is_configured().await {
-            tracing::info!("Notion not configured, skipping poll");
+            if poll_count % 10 == 1 {
+                tracing::info!("Notion not configured, skipping poll");
+            }
             continue;
         }
 
-        tracing::info!("Polling Notion for changes (since={:?})...", since);
+        tracing::info!("Poll #{}: since={:?}", poll_count, since);
 
         match do_sync(&pool, &client, &broadcast, since.as_deref()).await {
             Ok(count) => {
+                // Only advance last_sync when pages were actually fetched or it's the first sync
                 *last_sync.lock().await = Some(Utc::now());
                 if count > 0 {
                     tracing::info!("Notion sync complete, processed {} pages", count);
-                } else {
-                    tracing::debug!("Notion sync complete, no changes");
                 }
             }
             Err(e) => {
-                tracing::error!("Notion sync error: {}", e);
+                tracing::error!("Notion sync error: {} (will retry next cycle)", e);
+                // Do NOT advance last_sync on error so we retry the same window
             }
         }
     }

@@ -116,12 +116,27 @@ async fn main() {
     let notion_client = Arc::new(NotionClient::new(notion_token, notion_db_id));
     notion_client.load_config_from_db(&pool).await;
 
-    // Spawn Notion poller as a background task
-    tokio::spawn(sync::notion_poller::start_polling(
-        pool.clone(),
-        notion_client.clone(),
-        broadcast.clone(),
-    ));
+    // Spawn Notion poller as a background task (restart on panic)
+    tokio::spawn({
+        let pool = pool.clone();
+        let notion_client = notion_client.clone();
+        let broadcast = broadcast.clone();
+        async move {
+            loop {
+                let result = tokio::spawn(sync::notion_poller::start_polling(
+                    pool.clone(),
+                    notion_client.clone(),
+                    broadcast.clone(),
+                ))
+                .await;
+                match result {
+                    Err(e) => tracing::error!("Notion poller crashed: {} — restarting in 10s", e),
+                    Ok(_) => tracing::warn!("Notion poller exited unexpectedly — restarting in 10s"),
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            }
+        }
+    });
 
     // JWT secret
     let jwt_secret = std::env::var("JWT_SECRET")

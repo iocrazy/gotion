@@ -6,6 +6,29 @@ use tokio::time::{sleep, Duration};
 
 use gotion_shared::notion_types::{self, *};
 
+#[derive(Debug)]
+pub enum NotionSyncError {
+    Request(reqwest::Error),
+    ApiError(String),
+    ParseError(String),
+}
+
+impl std::fmt::Display for NotionSyncError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Request(e) => write!(f, "HTTP request error: {}", e),
+            Self::ApiError(msg) => write!(f, "Notion API error: {}", msg),
+            Self::ParseError(msg) => write!(f, "Response parse error: {}", msg),
+        }
+    }
+}
+
+impl From<reqwest::Error> for NotionSyncError {
+    fn from(e: reqwest::Error) -> Self {
+        Self::Request(e)
+    }
+}
+
 pub struct NotionClient {
     client: Client,
     config: RwLock<NotionConfig>,
@@ -311,7 +334,7 @@ impl NotionClient {
     pub async fn query_database(
         &self,
         since: Option<&str>,
-    ) -> Result<Vec<NotionPage>, reqwest::Error> {
+    ) -> Result<Vec<NotionPage>, NotionSyncError> {
         let mut all_pages = Vec::new();
         let mut cursor: Option<String> = None;
         let config = self.config.read().await;
@@ -353,14 +376,27 @@ impl NotionClient {
                 .send()
                 .await?;
 
+            let status = raw_resp.status();
             let resp_text = raw_resp.text().await?;
+
+            if !status.is_success() {
+                tracing::error!(
+                    "Notion API returned {} — body: {}",
+                    status,
+                    &resp_text[..resp_text.len().min(500)]
+                );
+                return Err(NotionSyncError::ApiError(format!(
+                    "Notion API {}: {}",
+                    status,
+                    &resp_text[..resp_text.len().min(200)]
+                )));
+            }
+
             let resp: NotionQueryResponse = match serde_json::from_str(&resp_text) {
                 Ok(r) => r,
                 Err(e) => {
-                    tracing::error!("Failed to parse Notion query response: {}", e);
-                    tracing::error!("Response snippet: {}", &resp_text[..resp_text.len().min(1000)]);
-                    // Return empty to avoid crashing the poller
-                    return Ok(vec![]);
+                    tracing::error!("Failed to parse Notion response: {} — snippet: {}", e, &resp_text[..resp_text.len().min(500)]);
+                    return Err(NotionSyncError::ParseError(e.to_string()));
                 }
             };
 
