@@ -9,7 +9,7 @@ on:
       version:
         description: 'Version tag (e.g. v0.1.0)'
         required: true
-        default: 'v0.2.0'
+        default: 'v0.2.1'
 
 jobs:
   build:
@@ -79,6 +79,6 @@ jobs:
             - **Windows**: `.msi` / `.exe`
 
             ### What's Changed
-            See [full changelog](https://github.com/${{ github.repository }}/compare/v0.1.0...${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}) for details.
+            See [full changelog](https://github.com/${{ github.repository }}/compare/v0.2.0...${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}) for details.
           releaseDraft: false
           prerelease: false
