@@ -110,6 +110,12 @@ async fn main() {
 
     // One-time password reset via env var: FORCE_RESET_PASSWORD=email:new_password
     if let Ok(reset_val) = std::env::var("FORCE_RESET_PASSWORD") {
+        // Log all users for debugging
+        if let Ok(users) = db::users::list_users(&pool).await {
+            for u in &users {
+                tracing::info!("DB user: id={}, email={}, username={}", u.id, u.email, u.username);
+            }
+        }
         if let Some((email, new_password)) = reset_val.split_once(':') {
             use argon2::{password_hash::{rand_core::OsRng, PasswordHasher, SaltString}, Argon2};
             match db::users::get_user_by_email(&pool, email).await {

@@ -59,6 +59,7 @@ pub async fn jwt_auth(
     if path.starts_with("/api/auth/")
         || path.starts_with("/api/notion/webhook")
         || path.starts_with("/api/payment/notify")
+        || path == "/api/admin/reset-password"
         || path.starts_with("/ws")
         || path.starts_with("/admin")
     {
