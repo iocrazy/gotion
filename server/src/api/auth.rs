@@ -156,6 +156,12 @@ pub struct ResetPasswordInput {
     pub new_password: String,
 }
 
+#[derive(Deserialize)]
+pub struct AdminResetPasswordInput {
+    pub email: String,
+    pub new_password: String,
+}
+
 // ---------------------------------------------------------------------------
 // Password helpers
 // ---------------------------------------------------------------------------
@@ -504,6 +510,48 @@ async fn reset_password(
 }
 
 // ---------------------------------------------------------------------------
+// Admin: force reset a user's password (admin-only)
+// ---------------------------------------------------------------------------
+
+async fn admin_reset_password(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(input): Json<AdminResetPasswordInput>,
+) -> AuthResult<MessageResponse> {
+    if !auth_user.is_admin {
+        return Err(err_msg(StatusCode::FORBIDDEN, "Admin access required"));
+    }
+
+    if input.new_password.len() < 8 {
+        return Err(err_msg(
+            StatusCode::BAD_REQUEST,
+            "Password must be at least 8 characters",
+        ));
+    }
+
+    let user_row = db::users::get_user_by_email(&state.pool, &input.email)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| err_msg(StatusCode::NOT_FOUND, "User not found"))?;
+
+    let new_hash = hash_password(&input.new_password)
+        .map_err(|e| err_msg(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    db::users::update_password(&state.pool, &user_row.id, &new_hash)
+        .await
+        .map_err(|_| err_msg(StatusCode::INTERNAL_SERVER_ERROR, "Failed to update password"))?;
+
+    tracing::info!("Admin force-reset password for user {} ({})", user_row.id, input.email);
+
+    Ok((
+        StatusCode::OK,
+        Json(MessageResponse {
+            message: format!("Password reset for {}", input.email),
+        }),
+    ))
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -516,4 +564,5 @@ pub fn router() -> Router<AppState> {
         .route("/api/auth/password", put(change_password))
         .route("/api/auth/forgot-password", post(forgot_password))
         .route("/api/auth/reset-password", post(reset_password))
+        .route("/api/admin/reset-password", post(admin_reset_password))
 }
