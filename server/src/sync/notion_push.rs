@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use sqlx::SqlitePool;
+
+use crate::db;
 use crate::sync::notion_client::NotionClient;
 use gotion_shared::models::{Task, TaskStatus};
 
@@ -68,6 +71,59 @@ pub async fn push_task_update(
         )
         .await
         .map_err(|e| format!("Failed to update Notion: {}", e))
+}
+
+/// Background helper: push a newly created task to Notion, resolving parent and category from DB.
+/// Sets the notion_id on the task after successful push.
+pub async fn push_new_task_background(
+    client: &Arc<NotionClient>,
+    pool: &SqlitePool,
+    user_id: &str,
+    task: &Task,
+) {
+    // Resolve parent's notion_id if this is a subtask
+    let parent_notion_id: Option<String> = if let Some(pid) = task.parent_id {
+        if let Ok(Some(parent)) = db::tasks::get_task(pool, user_id, pid).await {
+            parent.notion_id
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Resolve category name
+    let category_name: Option<String> = if let Some(cat_id) = task.category_id {
+        db::categories::get_category(pool, user_id, cat_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|c| c.name)
+    } else {
+        None
+    };
+
+    match push_new_task(
+        client,
+        task,
+        parent_notion_id.as_deref(),
+        category_name.as_deref(),
+    )
+    .await
+    {
+        Ok(notion_id) => {
+            // Store the notion_id on the task
+            let _ = sqlx::query("UPDATE tasks SET notion_id = ? WHERE id = ?")
+                .bind(&notion_id)
+                .bind(task.id.to_string())
+                .execute(pool)
+                .await;
+            tracing::info!("Pushed new task '{}' to Notion: {}", task.title, notion_id);
+        }
+        Err(e) => {
+            tracing::error!("Failed to push new task '{}' to Notion: {}", task.title, e);
+        }
+    }
 }
 
 /// Archive a task in Notion

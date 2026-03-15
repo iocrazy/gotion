@@ -59,56 +59,17 @@ async fn create_task(
 
     state.broadcast.send(auth.user_id.clone(), WsMessage::TaskCreated(task.clone()));
 
-    // Push to Notion in the background (non-blocking)
-    let client = state.notion_client.clone();
-    let pool = state.pool.clone();
-    let task_clone = task.clone();
-    let user_id = auth.user_id.clone();
-    tokio::spawn(async move {
-        // Look up parent's notion_id if this is a sub-task
-        let parent_notion_id = if let Some(pid) = task_clone.parent_id {
-            db::tasks::get_task(&pool, &user_id, pid)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|t| t.notion_id)
-        } else {
-            None
-        };
-
-        // Resolve category_id to category name
-        let category_name = if let Some(cat_id) = task_clone.category_id {
-            db::categories::get_category(&pool, &user_id, cat_id)
-                .await
-                .ok()
-                .flatten()
-                .map(|c| c.name)
-        } else {
-            None
-        };
-
-        match notion_push::push_new_task(
-            &client,
-            &task_clone,
-            parent_notion_id.as_deref(),
-            category_name.as_deref(),
-        )
-        .await
-        {
-            Ok(notion_id) => {
-                // Store the notion_id mapping
-                let _ = sqlx::query("UPDATE tasks SET notion_id = ? WHERE id = ?")
-                    .bind(&notion_id)
-                    .bind(task_clone.id.to_string())
-                    .execute(&pool)
-                    .await;
-                tracing::debug!("Pushed new task to Notion: {}", notion_id);
-            }
-            Err(e) => {
-                tracing::error!("Failed to push new task to Notion: {}", e);
-            }
-        }
-    });
+    // Only push to Notion if the task has a non-empty title (empty subtasks will be
+    // pushed on the first update when the user types a title)
+    if !task.title.trim().is_empty() {
+        let client = state.notion_client.clone();
+        let pool = state.pool.clone();
+        let task_clone = task.clone();
+        let user_id = auth.user_id.clone();
+        tokio::spawn(async move {
+            notion_push::push_new_task_background(&client, &pool, &user_id, &task_clone).await;
+        });
+    }
 
     Ok((StatusCode::CREATED, Json(task)))
 }
@@ -145,8 +106,9 @@ async fn update_task(
             let task_clone = t.clone();
             let user_id = auth.user_id.clone();
             tokio::spawn(async move {
-                if let Some(ref notion_id) = task_clone.notion_id {
-                    // Resolve category_id to name for Notion
+                if task_clone.notion_id.is_some() {
+                    // Task already exists in Notion — update it
+                    let notion_id = task_clone.notion_id.as_ref().unwrap();
                     let category_name: Option<Option<String>> = if let Some(cat_id) = task_clone.category_id {
                         let name = db::categories::get_category(&pool, &user_id, cat_id)
                             .await
@@ -165,6 +127,9 @@ async fn update_task(
                     {
                         tracing::error!("Failed to push task update to Notion: {}", e);
                     }
+                } else if !task_clone.title.trim().is_empty() {
+                    // Task has no notion_id but now has a title — create it in Notion
+                    notion_push::push_new_task_background(&client, &pool, &user_id, &task_clone).await;
                 }
             });
 

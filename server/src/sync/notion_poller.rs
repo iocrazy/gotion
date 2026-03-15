@@ -108,11 +108,21 @@ async fn do_sync(
 
     let mut synced = 0;
 
-    for page in &pages {
-        if page.archived {
-            continue;
-        }
+    // Sort pages: parent tasks first, subtasks second.
+    // This ensures parent tasks exist in DB before subtasks try to resolve their parent_id.
+    let field_map_for_sort = client.get_config().await.field_map;
+    let mut sorted_pages: Vec<&_> = pages.iter().filter(|p| !p.archived).collect();
+    if !field_map_for_sort.parent_item.is_empty() {
+        sorted_pages.sort_by_key(|p| {
+            if p.get_relation_first(&field_map_for_sort.parent_item).is_some() {
+                1 // subtask — process after parents
+            } else {
+                0 // parent — process first
+            }
+        });
+    }
 
+    for page in &sorted_pages {
         let field_map = client.get_config().await.field_map;
 
         let notion_title = match page.get_title(&field_map.title) {
@@ -165,9 +175,14 @@ async fn do_sync(
         let notion_parent_id: Option<Uuid> = if !field_map.parent_item.is_empty() {
             if let Some(parent_notion_id) = page.get_relation_first(&field_map.parent_item) {
                 // Find local task by parent's notion_id
-                find_task_by_notion_id(pool, &parent_notion_id)
-                    .await
-                    .map(|t| t.id)
+                let local_parent = find_task_by_notion_id(pool, &parent_notion_id).await;
+                if local_parent.is_none() {
+                    tracing::warn!(
+                        "Subtask '{}' references parent notion_id={} but no local task found",
+                        notion_title, parent_notion_id
+                    );
+                }
+                local_parent.map(|t| t.id)
             } else {
                 None
             }
