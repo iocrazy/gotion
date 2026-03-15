@@ -20,6 +20,7 @@ jobs:
           username: ${{ secrets.NAS_USER }}
           key: ${{ secrets.NAS_SSH_KEY }}
           script: |
+            export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
             echo "=== Container status ==="
             sudo docker ps --filter name=gotion --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             echo ""
