@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { UseBoundStore, StoreApi } from "zustand";
 import { api } from "../lib/api";
 import { isTauri, tauriInvoke } from "../lib/tauri";
 
@@ -29,12 +30,12 @@ interface AuthState {
   loadToken: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState>((set) => ({
   user: null,
   token: null,
   loading: true,
 
-  isPro: () => {
+  isPro: (): boolean => {
     const state = useAuthStore.getState();
     return state.user?.subscription?.is_pro ?? false;
   },

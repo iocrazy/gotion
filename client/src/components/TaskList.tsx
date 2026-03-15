@@ -28,15 +28,23 @@ export function TaskList({ showSubtasks = false, sortBy = "creation_time", statu
 
   // Filter out sub-tasks and apply category + status filter
   const filteredTasks = useMemo(() => {
+    const doneStatuses = ["Done", "Cancelled"];
     return tasks.filter((t) => {
       if (t.parent_id) return false;
       if (selectedCategoryId && t.category_id !== selectedCategoryId) return false;
       // Empty array = show all (no filter)
       if (statusFilter.length === 0) return true;
-      // If task has notion_status, filter by it
-      if (t.notion_status) return statusFilter.includes(t.notion_status);
-      // Fallback: tasks without notion_status match via binary status mapping
-      const doneStatuses = ["Done", "Cancelled"];
+      // Use notion_status when it is consistent with the binary status field.
+      // If they are out of sync (e.g., toggled locally but not yet synced to Notion),
+      // fall through to the binary status mapping so locally-toggled tasks still appear.
+      if (t.notion_status) {
+        const notionIsDone = doneStatuses.includes(t.notion_status);
+        const localIsDone = t.status === "done";
+        if (notionIsDone === localIsDone) {
+          return statusFilter.includes(t.notion_status);
+        }
+      }
+      // Fallback: match via binary status mapping
       const hasDone = statusFilter.some((s) => doneStatuses.includes(s));
       const hasTodo = statusFilter.some((s) => !doneStatuses.includes(s));
       if (t.status === "done") return hasDone;

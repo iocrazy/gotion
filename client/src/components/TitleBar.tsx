@@ -12,7 +12,7 @@ export type GroupBy = "status" | "date" | "priority";
 export function TitleBar() {
   const [pinned, setPinned] = useState(false);
   const { groupBy, setGroupBy } = useTaskStore();
-  const { serverUrl, setServerUrl, bgOpacity, setBgOpacity, theme, setTheme } = useSettingsStore();
+  const { serverUrl, setServerUrl, bgOpacity, setBgOpacity, themeId: theme, setTheme } = useSettingsStore();
   const [serverInput, setServerInput] = useState(serverUrl);
 
   useEffect(() => {

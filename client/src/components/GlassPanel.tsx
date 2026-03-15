@@ -7,7 +7,7 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function AppShell({ className, children, ...props }: AppShellProps) {
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
-  const theme = useSettingsStore((s) => s.theme);
+  const theme = useSettingsStore((s) => s.themeId);
 
   const [r, g, b] = theme === "light" ? [245, 246, 248] : [10, 10, 15];
   const bgColor = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;

@@ -33,7 +33,7 @@ export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
   const [plan, setPlan] = useState<Plan>("yearly");
   const [channel, setChannel] = useState<Channel>("wechat");
   const [qrUrl, setQrUrl] = useState("");
-  const [orderNo, setOrderNo] = useState("");
+  const [_orderNo, setOrderNo] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);

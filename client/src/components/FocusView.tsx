@@ -13,9 +13,8 @@ const DEFAULT_MINUTES = 25;
 
 async function notifyComplete(taskTitle: string) {
   try {
-    const { sendNotification } = await import(
-      "@tauri-apps/plugin-notification"
-    );
+    // @ts-ignore -- optional Tauri plugin, may not be installed in all environments
+    const { sendNotification } = await import("@tauri-apps/plugin-notification");
     sendNotification({
       title: "Focus Complete!",
       body: `Finished: ${taskTitle}`,

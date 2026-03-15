@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Paperclip, Trash2, FileIcon, Loader2 } from "lucide-react";
-import { api, Attachment } from "../lib/api";
+import { api } from "../lib/api";
+import type { Attachment } from "../lib/api";
 import { useAuthStore } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
 import { ProBadge } from "./ProBadge";

@@ -140,6 +140,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         sort_order: 0,
         starred: false,
         starred_updated_at: null,
+        notion_status: null,
       };
       set((state) => ({ tasks: [tempTask, ...state.tasks] }));
       await queueOfflineOp("task", tempTask.id, "create", {
