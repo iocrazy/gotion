@@ -19,7 +19,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const handleOpacityChange = (value: string) => {
     const parsed = parseFloat(value);
     if (!isNaN(parsed)) {
-      const clamped = Math.min(1.0, Math.max(0.5, parsed));
+      const clamped = Math.min(1.0, Math.max(0.2, parsed));
       setBgOpacity(clamped);
     }
   };
@@ -56,15 +56,15 @@ export function SettingsView({ onClose }: SettingsViewProps) {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-gray-800 text-[15px]">
-                  Background Opacity
+                  Window Opacity
                 </span>
                 <span className="text-sm text-gray-500">
-                  {bgOpacity.toFixed(2)}
+                  {Math.round(bgOpacity * 100)}%
                 </span>
               </div>
               <input
                 type="range"
-                min="0.5"
+                min="0.2"
                 max="1.0"
                 step="0.05"
                 value={bgOpacity}

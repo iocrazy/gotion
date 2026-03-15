@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Menu, Search, MoreHorizontal, Plus, Pin, PinOff } from "lucide-react";
+import { useState, useRef } from "react";
+import { Menu, Search, MoreHorizontal, Plus, Pin, PinOff, Minus, Maximize2 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { CategoryTabs } from "./CategoryTabs";
 import { TaskList } from "./TaskList";
 import { MoreOptionsMenu } from "./MoreOptionsMenu";
@@ -14,13 +15,17 @@ type SortOption =
   | "manual"
   | "flag_color";
 
+const COLLAPSED_HEIGHT = 52;
+
 interface TasksViewProps {
   onAdd: () => void;
   onSearch: () => void;
   onMenuClick: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
+export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCollapse }: TasksViewProps) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>(() =>
     (localStorage.getItem("gotion_sortBy") as SortOption) || "creation_time"
@@ -39,6 +44,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
     return [];
   });
   const [pinned, setPinned] = useState(false);
+  const savedSize = useRef<{ width: number; height: number } | null>(null);
 
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort);
@@ -67,6 +73,29 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
     }
   };
 
+  const toggleCollapse = async () => {
+    try {
+      const appWindow = getCurrentWindow();
+      if (!collapsed) {
+        // Save current size before collapsing
+        const size = await appWindow.innerSize();
+        savedSize.current = { width: size.width, height: size.height };
+        const factor = await appWindow.scaleFactor();
+        await appWindow.setSize(new LogicalSize(size.width / factor, COLLAPSED_HEIGHT));
+      } else if (savedSize.current) {
+        // Restore saved size
+        const factor = await appWindow.scaleFactor();
+        await appWindow.setSize(new LogicalSize(
+          savedSize.current.width / factor,
+          savedSize.current.height / factor
+        ));
+      }
+    } catch {
+      // Not in Tauri environment (browser dev)
+    }
+    onToggleCollapse();
+  };
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header — drag region for window movement */}
@@ -77,49 +106,64 @@ export function TasksView({ onAdd, onSearch, onMenuClick }: TasksViewProps) {
         <div data-tauri-drag-region className="flex-1" />
         <div className="flex items-center gap-3">
           <button
+            onClick={toggleCollapse}
+            className="text-gray-400"
+            title={collapsed ? "Expand window" : "Collapse window"}
+          >
+            {collapsed ? <Maximize2 size={18} /> : <Minus size={20} />}
+          </button>
+          <button
             onClick={togglePin}
             className={pinned ? "text-red-500" : "text-gray-400"}
             title={pinned ? "Unpin window" : "Pin window on top"}
           >
             {pinned ? <Pin size={20} /> : <PinOff size={20} />}
           </button>
-          <button onClick={onSearch} className="text-gray-400">
-            <Search size={20} />
-          </button>
-          <button onClick={() => setShowMoreOptions(true)} className="text-gray-400">
-            <MoreHorizontal size={20} />
-          </button>
+          {!collapsed && (
+            <>
+              <button onClick={onSearch} className="text-gray-400">
+                <Search size={20} />
+              </button>
+              <button onClick={() => setShowMoreOptions(true)} className="text-gray-400">
+                <MoreHorizontal size={20} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Category tabs */}
-      <CategoryTabs />
+      {!collapsed && (
+        <>
+          {/* Category tabs */}
+          <CategoryTabs />
 
-      {/* Task list */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <TaskList showSubtasks={showSubtasks} sortBy={sortBy} statusFilter={statusFilter} />
-      </div>
+          {/* Task list */}
+          <div className="flex-1 overflow-y-auto px-4 pb-24">
+            <TaskList showSubtasks={showSubtasks} sortBy={sortBy} statusFilter={statusFilter} />
+          </div>
 
-      {/* More options menu */}
-      {showMoreOptions && (
-        <MoreOptionsMenu
-          onClose={() => setShowMoreOptions(false)}
-          currentSort={sortBy}
-          onSortChange={(sort) => { handleSortChange(sort); setShowMoreOptions(false); }}
-          showSubtasks={showSubtasks}
-          onToggleSubtasks={handleToggleSubtasks}
-          statusFilter={statusFilter}
-          onStatusFilterChange={handleStatusFilterChange}
-        />
+          {/* More options menu */}
+          {showMoreOptions && (
+            <MoreOptionsMenu
+              onClose={() => setShowMoreOptions(false)}
+              currentSort={sortBy}
+              onSortChange={(sort) => { handleSortChange(sort); setShowMoreOptions(false); }}
+              showSubtasks={showSubtasks}
+              onToggleSubtasks={handleToggleSubtasks}
+              statusFilter={statusFilter}
+              onStatusFilterChange={handleStatusFilterChange}
+            />
+          )}
+
+          {/* FAB */}
+          <button
+            onClick={onAdd}
+            className="absolute bottom-20 right-5 w-14 h-14 bg-red-500 rounded-full shadow-lg shadow-red-200 flex items-center justify-center text-white z-20"
+          >
+            <Plus size={28} />
+          </button>
+        </>
       )}
-
-      {/* FAB */}
-      <button
-        onClick={onAdd}
-        className="absolute bottom-20 right-5 w-14 h-14 bg-red-500 rounded-full shadow-lg shadow-red-200 flex items-center justify-center text-white z-20"
-      >
-        <Plus size={28} />
-      </button>
     </div>
   );
 }

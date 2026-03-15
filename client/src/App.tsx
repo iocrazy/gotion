@@ -73,6 +73,7 @@ function AppContent() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const [focusTask, setFocusTask] = useState<{ id: string; title: string } | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
   // Close sidebar instantly (no exit animation) and open target view
@@ -93,6 +94,8 @@ function AppContent() {
             onAdd={() => setIsAddingTask(true)}
             onSearch={() => setIsSearching(true)}
             onMenuClick={() => setIsSidebarOpen(true)}
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed((c) => !c)}
           />
         )}
         {currentView === "calendar" && (
@@ -108,7 +111,9 @@ function AppContent() {
         )}
 
         {/* Bottom Navigation */}
-        <BottomNav currentView={currentView} onViewChange={setCurrentView} />
+        {!collapsed && (
+          <BottomNav currentView={currentView} onViewChange={setCurrentView} />
+        )}
 
         {/* Add Task Modal */}
         <AddTaskPanel
