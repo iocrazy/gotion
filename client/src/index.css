@@ -176,12 +176,12 @@ input::placeholder {
   color: var(--text-primary) !important;
 }
 
-/* Neobrutalism theme special styles */
+/* ── Neobrutalism (Hand-drawn) theme ── */
 @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&display=swap');
 
+/* --- Base / Decorative --- */
 :root[data-theme-style="neobrutalism"] {
-  /* Dot grid background */
-  background-image: radial-gradient(#e5e7eb 1px, transparent 1px) !important;
+  background-image: radial-gradient(#d4c9a8 1px, transparent 1px) !important;
   background-size: 24px 24px;
 }
 
@@ -195,5 +195,209 @@ input::placeholder {
 }
 
 :root[data-theme-style="neobrutalism"] [class*="shadow"] {
-  box-shadow: 3px 3px 0px var(--border);
+  box-shadow: 4px 4px 0px var(--border);
+}
+
+/* --- Layer 1: Color Remapping --- */
+
+/* Backgrounds */
+:root[data-theme-style="neobrutalism"] .bg-white {
+  background-color: var(--bg-surface) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-\[\#F5F6F8\],
+:root[data-theme-style="neobrutalism"] .bg-\[\#F5F5F7\] {
+  background-color: var(--bg-base) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-gray-50 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-gray-100 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-gray-200 {
+  background-color: rgba(60,42,20,0.08) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .hover\:bg-gray-50:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .hover\:bg-gray-100:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .hover\:bg-gray-200:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .active\:bg-gray-50:active {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Alert/feedback backgrounds */
+:root[data-theme-style="neobrutalism"] .bg-red-50 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-green-50 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-orange-50 {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Text */
+:root[data-theme-style="neobrutalism"] .text-gray-800,
+:root[data-theme-style="neobrutalism"] .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-gray-700,
+:root[data-theme-style="neobrutalism"] .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-gray-500 {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-gray-400,
+:root[data-theme-style="neobrutalism"] .text-gray-300 {
+  color: var(--text-muted) !important;
+}
+
+/* Borders */
+:root[data-theme-style="neobrutalism"] .border-gray-200,
+:root[data-theme-style="neobrutalism"] .border-gray-100 {
+  border-color: var(--border) !important;
+}
+
+/* Red accent → warm orange */
+:root[data-theme-style="neobrutalism"] .text-red-500,
+:root[data-theme-style="neobrutalism"] .text-red-400 {
+  color: var(--accent) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-red-500 {
+  background-color: var(--accent) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-red-100,
+:root[data-theme-style="neobrutalism"] .fill-red-100 {
+  background-color: var(--accent-dim) !important;
+}
+
+/* Shadows → solid offset */
+:root[data-theme-style="neobrutalism"] .shadow-sm {
+  box-shadow: 3px 3px 0 var(--border) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .shadow-lg {
+  box-shadow: 4px 4px 0 var(--border) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .shadow-xl {
+  box-shadow: 4px 4px 0 var(--border) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .shadow-2xl {
+  box-shadow: 5px 5px 0 var(--border) !important;
+}
+
+/* --- Layer 2: Decorative Enhancements --- */
+
+/* Cards and panels get visible borders */
+:root[data-theme-style="neobrutalism"] .rounded-2xl,
+:root[data-theme-style="neobrutalism"] .rounded-3xl {
+  border: 2px solid var(--border);
+}
+
+/* Dividers become dashed */
+:root[data-theme-style="neobrutalism"] .border-t {
+  border-top-style: dashed !important;
+  border-top-width: 2px !important;
+  border-top-color: var(--text-muted) !important;
+}
+
+/* Checkboxes / circular elements get thicker borders */
+:root[data-theme-style="neobrutalism"] .rounded-full {
+  border-width: 2.5px;
+  border-color: var(--border);
+}
+
+/* --- Layer 3: Status Pill Overrides --- */
+
+:root[data-theme-style="neobrutalism"] .bg-blue-100 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-orange-100 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-yellow-100 {
+  background-color: var(--bg-hover) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-gray-700 {
+  background-color: var(--text-secondary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-blue-700 {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-orange-700 {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-yellow-700 {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .text-red-700 {
+  color: var(--text-primary) !important;
+}
+
+/* Green accents */
+:root[data-theme-style="neobrutalism"] .text-green-500 {
+  color: var(--done) !important;
+}
+
+/* Blue accents used for toggles/icons */
+:root[data-theme-style="neobrutalism"] .text-blue-400,
+:root[data-theme-style="neobrutalism"] .text-blue-500 {
+  color: var(--accent) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-blue-500 {
+  background-color: var(--accent) !important;
+}
+
+/* Orange badge accents */
+:root[data-theme-style="neobrutalism"] .text-orange-400,
+:root[data-theme-style="neobrutalism"] .text-orange-500 {
+  color: var(--accent) !important;
+}
+
+:root[data-theme-style="neobrutalism"] .bg-orange-400,
+:root[data-theme-style="neobrutalism"] .bg-orange-500 {
+  background-color: var(--accent) !important;
+}
+
+/* Placeholder text */
+:root[data-theme-style="neobrutalism"] input::placeholder,
+:root[data-theme-style="neobrutalism"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Select elements */
+:root[data-theme-style="neobrutalism"] select {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }

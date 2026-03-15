@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, routing::{get, post, delete}, Json, Router};
+use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post, delete}, Json, Router};
 use serde::{Deserialize, Serialize};
 
 use super::AppState;
@@ -20,6 +20,8 @@ struct NotionConfigResponse {
     token_preview: String,
     database_id: String,
     field_map: NotionFieldMap,
+    webhook_secret_configured: bool,
+    webhook_secret_preview: String,
 }
 
 #[derive(Deserialize)]
@@ -27,6 +29,7 @@ struct UpdateConfigRequest {
     token: Option<String>,
     database_id: Option<String>,
     field_map: Option<NotionFieldMap>,
+    webhook_secret: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -63,11 +66,25 @@ async fn get_config(State(state): State<AppState>) -> Json<NotionConfigResponse>
         "***".into()
     };
 
+    let webhook_secret_preview = if config.webhook_secret.len() > 8 {
+        format!(
+            "{}...{}",
+            &config.webhook_secret[..4],
+            &config.webhook_secret[config.webhook_secret.len() - 4..]
+        )
+    } else if config.webhook_secret.is_empty() {
+        String::new()
+    } else {
+        "***".into()
+    };
+
     Json(NotionConfigResponse {
         token_configured: !config.token.is_empty(),
         token_preview,
         database_id: config.database_id,
         field_map: config.field_map,
+        webhook_secret_configured: !config.webhook_secret.is_empty(),
+        webhook_secret_preview,
     })
 }
 
@@ -77,7 +94,7 @@ async fn update_config(
 ) -> StatusCode {
     state
         .notion_client
-        .update_config(req.token, req.database_id, req.field_map, &state.pool)
+        .update_config(req.token, req.database_id, req.field_map, req.webhook_secret, &state.pool)
         .await;
     StatusCode::OK
 }
@@ -152,8 +169,21 @@ async fn sync_now(State(state): State<AppState>) -> Json<SyncNowResult> {
 
 /// Webhook endpoint for Notion Database Automations.
 /// Notion sends a POST when a page is added/edited. We trigger an immediate sync.
-/// Accepts any JSON body (we don't parse the payload, just use it as a sync trigger).
-async fn webhook(State(state): State<AppState>) -> StatusCode {
+/// Secured via X-Webhook-Secret header when webhook_secret is configured in app settings.
+async fn webhook(State(state): State<AppState>, headers: HeaderMap) -> StatusCode {
+    // Verify webhook secret if configured
+    let config = state.notion_client.get_config().await;
+    if !config.webhook_secret.is_empty() {
+        let provided = headers
+            .get("x-webhook-secret")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        if provided != config.webhook_secret {
+            tracing::warn!("Webhook rejected: invalid or missing X-Webhook-Secret");
+            return StatusCode::UNAUTHORIZED;
+        }
+    }
+
     tracing::info!("Notion webhook received, triggering sync");
     let pool = state.pool.clone();
     let client = state.notion_client.clone();

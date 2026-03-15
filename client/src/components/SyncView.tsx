@@ -55,6 +55,8 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
   const [notionToken, setNotionToken] = useState("");
   const [notionDbId, setNotionDbId] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
+  const [webhookSecretConfigured, setWebhookSecretConfigured] = useState(false);
+  const [webhookSecretPreview, setWebhookSecretPreview] = useState("");
   const [notionTokenConfigured, setNotionTokenConfigured] = useState(false);
   const [notionTokenPreview, setNotionTokenPreview] = useState("");
   const [notionTestResult, setNotionTestResult] = useState<{
@@ -90,7 +92,8 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
       setNotionTokenConfigured(cfg.token_configured);
       setNotionTokenPreview(cfg.token_preview);
       setNotionDbId(cfg.database_id);
-      setWebhookSecret(cfg.webhook_secret ?? "");
+      setWebhookSecretConfigured(cfg.webhook_secret_configured ?? false);
+      setWebhookSecretPreview(cfg.webhook_secret_preview ?? "");
       if (cfg.field_map) setFieldMap(cfg.field_map);
     }).catch(() => {});
   }, []);
@@ -161,7 +164,9 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
       setNotionTokenConfigured(cfg.token_configured);
       setNotionTokenPreview(cfg.token_preview);
       setNotionDbId(cfg.database_id);
-      setWebhookSecret(cfg.webhook_secret ?? "");
+      setWebhookSecretConfigured(cfg.webhook_secret_configured ?? false);
+      setWebhookSecretPreview(cfg.webhook_secret_preview ?? "");
+      setWebhookSecret("");
       setNotionToken("");
       setNotionTestResult({ success: true, message: "Connection saved" });
     } catch (e) {
@@ -338,20 +343,28 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
 
           {/* Webhook Secret */}
           <div className="px-4 py-3 border-b border-gray-100">
-            <label className="text-sm text-gray-500 mb-1 block">
-              Webhook Secret
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm text-gray-500">Webhook Secret</label>
+              {isPro && webhookSecretConfigured && (
+                <span className="text-xs text-green-500">Configured</span>
+              )}
+            </div>
             {isPro ? (
               <>
                 <p className="text-xs text-gray-400 mb-1">
                   Set in Notion automation as custom header: X-Webhook-Secret
                 </p>
+                {webhookSecretConfigured && !webhookSecret && (
+                  <div className="text-xs text-gray-400 mb-1 font-mono">
+                    {webhookSecretPreview}
+                  </div>
+                )}
                 <input
-                  type="text"
+                  type="password"
                   value={webhookSecret}
                   onChange={(e) => setWebhookSecret(e.target.value)}
                   className="w-full text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 outline-none font-mono"
-                  placeholder="Leave empty to allow public webhook"
+                  placeholder={webhookSecretConfigured ? "Enter new secret to update" : "Leave empty to allow public webhook"}
                 />
               </>
             ) : (
