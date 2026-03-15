@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Paperclip, Trash2, FileIcon, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import type { Attachment } from "../lib/api";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
 import { ProBadge } from "./ProBadge";
 
@@ -19,7 +19,7 @@ interface AttachmentListProps {
 }
 
 export function AttachmentList({ taskId }: AttachmentListProps) {
-  const isPro = useAuthStore((s) => s.isPro);
+  const isPro = useAuthStore(selectIsPro);
   const openUpgrade = useUpgrade();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +41,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
   }, [taskId]);
 
   useEffect(() => {
-    if (isPro()) {
+    if (isPro) {
       fetchAttachments();
     } else {
       setLoading(false);
@@ -79,7 +79,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
   };
 
   // Locked state for non-Pro users
-  if (!isPro()) {
+  if (!isPro) {
     return (
       <div className="rounded-3xl overflow-hidden shadow-sm bg-white">
         <div className="px-5 py-4 flex items-center justify-between">

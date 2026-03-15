@@ -25,7 +25,6 @@ interface AuthState {
     username: string,
     password: string,
   ) => Promise<string>;
-  isPro: () => boolean;
   logout: () => void;
   loadToken: () => Promise<void>;
 }
@@ -34,11 +33,6 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
   user: null,
   token: null,
   loading: true,
-
-  isPro: (): boolean => {
-    const state = useAuthStore.getState();
-    return state.user?.subscription?.is_pro ?? false;
-  },
 
   loadToken: async () => {
     let token: string | null = null;
@@ -128,3 +122,7 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
     }
   },
 }));
+
+/** Selector: subscribe to Pro status reactively */
+export const selectIsPro = (s: AuthState): boolean =>
+  s.user?.subscription?.is_pro ?? false;

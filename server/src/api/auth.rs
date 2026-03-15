@@ -56,7 +56,14 @@ pub async fn jwt_auth(
     let path = request.uri().path().to_string();
 
     // Skip auth for public routes
-    if path.starts_with("/api/auth/")
+    let public_auth_routes = [
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/verify-email",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
+    ];
+    if public_auth_routes.iter().any(|r| path == *r)
         || path.starts_with("/api/notion/webhook")
         || path.starts_with("/api/payment/notify")
         || path == "/api/admin/reset-password"

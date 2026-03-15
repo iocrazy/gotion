@@ -1,5 +1,5 @@
 import { Crown } from "lucide-react";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
 
 interface ProBadgeProps {
   onClick?: () => void;
@@ -7,8 +7,8 @@ interface ProBadgeProps {
 }
 
 export function ProBadge({ onClick, className }: ProBadgeProps) {
-  const isPro = useAuthStore((s) => s.isPro);
-  if (isPro()) return null;
+  const isPro = useAuthStore(selectIsPro);
+  if (isPro) return null;
   return (
     <button
       onClick={onClick}

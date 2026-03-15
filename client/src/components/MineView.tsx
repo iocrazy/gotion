@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Settings, ChevronRight, Crown, LogOut, User } from "lucide-react";
 import { useTaskStore } from "../stores/taskStore";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
 import { format } from "date-fns";
 
@@ -18,7 +18,7 @@ const DAILY_CHART_PLACEHOLDER_HEIGHTS = [20, 40, 15, 60, 35, 25, 45];
 export function MineView({ onSettingsClick }: MineViewProps) {
   const tasks = useTaskStore((s) => s.tasks);
   const user = useAuthStore((s) => s.user);
-  const isPro = useAuthStore((s) => s.isPro);
+  const isPro = useAuthStore(selectIsPro);
   const logout = useAuthStore((s) => s.logout);
   const openUpgrade = useUpgrade();
 
@@ -61,7 +61,7 @@ export function MineView({ onSettingsClick }: MineViewProps) {
         )}
 
         {/* Premium Banner */}
-        {isPro() ? (
+        {isPro ? (
           <div className="relative bg-gradient-to-r from-[#F06A6A] to-[#E55555] rounded-2xl p-5 text-white overflow-hidden">
             <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-sm" />
             <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10 blur-sm" />

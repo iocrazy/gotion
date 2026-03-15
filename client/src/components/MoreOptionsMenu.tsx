@@ -8,7 +8,9 @@ import {
   Check,
   Palette,
 } from "lucide-react";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
+import { useSettingsStore } from "../stores/settingsStore";
+import { getThemeById } from "../lib/themes";
 import { useUpgrade } from "../lib/upgradeContext";
 import { ThemeModal } from "./ThemeModal";
 
@@ -126,8 +128,10 @@ export function MoreOptionsMenu({
   statusFilter,
   onStatusFilterChange,
 }: MoreOptionsMenuProps) {
-  const isPro = useAuthStore((s) => s.isPro);
+  const isPro = useAuthStore(selectIsPro);
   const openUpgrade = useUpgrade();
+  const themeId = useSettingsStore((s) => s.themeId);
+  const currentTheme = getThemeById(themeId);
   const [showSortOptions, setShowSortOptions] = useState(true);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -191,18 +195,18 @@ export function MoreOptionsMenu({
           onClick={() => setShowThemeModal(true)}
         >
           <Palette size={20} className="text-gray-600" />
-          <span className="text-gray-800 text-[15px]">Theme</span>
+          <span className="text-gray-800 text-[15px]">{currentTheme.name}</span>
         </button>
 
         <div
           className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
-          onClick={isPro() ? undefined : openUpgrade}
+          onClick={isPro ? undefined : openUpgrade}
         >
           <div className="flex items-center gap-4">
             <SubtaskIcon size={20} className="text-gray-600" />
             <div className="flex items-center gap-1">
               <span className="text-gray-800 text-[15px]">Show Subtasks</span>
-              {!isPro() && (
+              {!isPro && (
                 <Crown
                   size={14}
                   className="text-orange-400 fill-orange-400"
@@ -214,7 +218,7 @@ export function MoreOptionsMenu({
             className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
               showSubtasks ? "bg-blue-500" : "bg-gray-300"
             }`}
-            onClick={isPro() ? onToggleSubtasks : openUpgrade}
+            onClick={isPro ? onToggleSubtasks : openUpgrade}
           >
             <div
               className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
@@ -376,7 +380,7 @@ export function MoreOptionsMenu({
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (option.id === "flag_color" && !isPro()) {
+                    if (option.id === "flag_color" && !isPro) {
                       openUpgrade();
                       return;
                     }
@@ -385,7 +389,7 @@ export function MoreOptionsMenu({
                   }}
                 >
                   {option.label}
-                  {option.id === "flag_color" && !isPro() && (
+                  {option.id === "flag_color" && !isPro && (
                     <Crown
                       size={14}
                       className="text-orange-400 fill-orange-400"

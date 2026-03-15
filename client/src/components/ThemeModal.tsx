@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { THEMES } from "../lib/themes";
 import { ThemeCard } from "./ThemeCard";
 import { useSettingsStore } from "../stores/settingsStore";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
 
 interface ThemeModalProps {
@@ -12,14 +12,14 @@ interface ThemeModalProps {
 export function ThemeModal({ onClose }: ThemeModalProps) {
   const themeId = useSettingsStore((s) => s.themeId);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const isPro = useAuthStore((s) => s.isPro);
+  const isPro = useAuthStore(selectIsPro);
   const openUpgrade = useUpgrade();
 
   const handleSelect = (id: string) => {
     const theme = THEMES.find((t) => t.id === id);
     if (!theme) return;
 
-    if (theme.isPro && !isPro()) {
+    if (theme.isPro && !isPro) {
       openUpgrade();
       return;
     }
@@ -55,7 +55,7 @@ export function ThemeModal({ onClose }: ThemeModalProps) {
               key={theme.id}
               theme={theme}
               isSelected={theme.id === themeId}
-              isPro={isPro()}
+              isPro={isPro}
               onClick={() => handleSelect(theme.id)}
             />
           ))}

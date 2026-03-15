@@ -263,7 +263,7 @@ export function SidebarMenu({
                     <Sun size={20} className="text-blue-400" />
                   )
                 }
-                label={currentTheme.name}
+                label="Theme"
                 onClick={() => setShowThemeModal(true)}
               />
             </div>

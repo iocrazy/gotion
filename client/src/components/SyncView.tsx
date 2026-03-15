@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useSettingsStore } from "../stores/settingsStore";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, selectIsPro } from "../stores/authStore";
 import { useUpgrade } from "../lib/upgradeContext";
 import { Crown } from "lucide-react";
 import type { SyncStatus } from "../hooks/useWebSocket";
@@ -23,7 +23,7 @@ interface SyncViewProps {
 }
 
 export function SyncView({ onClose, syncStatus }: SyncViewProps) {
-  const isPro = useAuthStore((s) => s.isPro);
+  const isPro = useAuthStore(selectIsPro);
   const openUpgrade = useUpgrade();
 
   // Server URL state
@@ -341,7 +341,7 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
             <label className="text-sm text-gray-500 mb-1 block">
               Webhook Secret
             </label>
-            {isPro() ? (
+            {isPro ? (
               <>
                 <p className="text-xs text-gray-400 mb-1">
                   Set in Notion automation as custom header: X-Webhook-Secret
