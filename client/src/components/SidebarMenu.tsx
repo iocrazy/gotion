@@ -18,7 +18,7 @@ import {
 import { useCategoryStore } from "../stores/categoryStore";
 import { useTaskStore } from "../stores/taskStore";
 import { useSettingsStore } from "../stores/settingsStore";
-import { getThemeById } from "../lib/themes";
+
 import { CategoryIcon } from "../lib/categoryIcons";
 import { ThemeModal } from "./ThemeModal";
 
@@ -110,7 +110,7 @@ export function SidebarMenu({
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(true);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const themeId = useSettingsStore((s) => s.themeId);
-  const currentTheme = getThemeById(themeId);
+
   const categories = useCategoryStore((s) => s.categories);
   const tasks = useTaskStore((s) => s.tasks);
   const setSelectedCategoryId = useTaskStore((s) => s.setSelectedCategoryId);

@@ -194,7 +194,8 @@ export const api = {
     token_preview: string;
     database_id: string;
     field_map: { title: string; status: string; due_date: string; status_todo: string; status_done: string; category: string; starred: string; parent_item: string; status_type: string };
-    webhook_secret: string;
+    webhook_secret_configured: boolean;
+    webhook_secret_preview: string;
   }> {
     const res = await fetch(`${getBaseUrl()}/api/notion/config`, {
       headers: authHeaders(),

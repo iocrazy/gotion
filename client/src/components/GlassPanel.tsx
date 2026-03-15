@@ -26,7 +26,7 @@ export function AppShell({ className, children, ...props }: AppShellProps) {
   useEffect(() => {
     if (isTauri()) {
       import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
-        getCurrentWindow().setAlpha(bgOpacity).catch(() => {});
+        (getCurrentWindow() as unknown as { setAlpha: (v: number) => Promise<void> }).setAlpha(bgOpacity).catch(() => {});
       });
     }
   }, [bgOpacity]);
