@@ -108,6 +108,16 @@ async fn main() {
         .await
         .ok();
 
+    // Track deleted notion pages to prevent re-creation by poller
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS deleted_notion_ids (\
+         notion_id TEXT PRIMARY KEY, \
+         deleted_at TEXT NOT NULL)"
+    )
+    .execute(&pool)
+    .await
+    .ok();
+
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB

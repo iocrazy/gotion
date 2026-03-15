@@ -123,6 +123,11 @@ async fn do_sync(
     }
 
     for page in &sorted_pages {
+        // Skip pages that were deleted locally (prevents re-creation)
+        if is_notion_id_deleted(pool, &page.id).await {
+            continue;
+        }
+
         let field_map = client.get_config().await.field_map;
 
         let notion_title = match page.get_title(&field_map.title) {
@@ -472,4 +477,15 @@ async fn cache_notion_image(notion_url: &str, pool: &SqlitePool) -> Option<Strin
     .ok()?;
 
     Some(format!("/api/images/{}", id))
+}
+
+/// Check if a notion page ID was locally deleted (should not be re-created).
+async fn is_notion_id_deleted(pool: &SqlitePool, notion_id: &str) -> bool {
+    sqlx::query_scalar::<_, i32>(
+        "SELECT COUNT(*) FROM deleted_notion_ids WHERE notion_id = ?"
+    )
+    .bind(notion_id)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0) > 0
 }

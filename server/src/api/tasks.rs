@@ -4,6 +4,7 @@ use axum::{
     routing::{get, patch},
     Extension, Router,
 };
+use chrono::Utc;
 use gotion_shared::models::{CreateTaskRequest, Task, TaskListQuery, UpdateTaskRequest, WsMessage};
 use uuid::Uuid;
 
@@ -159,6 +160,15 @@ async fn delete_task(
         // Archive in Notion in the background (non-blocking)
         if let Some(t) = task {
             if let Some(notion_id) = t.notion_id {
+                // Record deletion to prevent poller from re-creating
+                let _ = sqlx::query(
+                    "INSERT OR IGNORE INTO deleted_notion_ids (notion_id, deleted_at) VALUES (?, ?)"
+                )
+                .bind(&notion_id)
+                .bind(Utc::now())
+                .execute(&state.pool)
+                .await;
+
                 let client = state.notion_client.clone();
                 tokio::spawn(async move {
                     if let Err(e) = notion_push::push_task_delete(&client, &notion_id).await {

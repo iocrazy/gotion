@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { Menu, Search, MoreHorizontal, Plus, Pin, PinOff, Minus, Maximize2 } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalSize } from "@tauri-apps/api/dpi";
+import { isTauri } from "../lib/tauri";
 import { CategoryTabs } from "./CategoryTabs";
 import { TaskList } from "./TaskList";
 import { MoreOptionsMenu } from "./MoreOptionsMenu";
@@ -63,35 +62,36 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   };
 
   const togglePin = async () => {
+    if (!isTauri()) return;
     try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const appWindow = getCurrentWindow();
       const next = !pinned;
       await appWindow.setAlwaysOnTop(next);
       setPinned(next);
     } catch {
-      // Not in Tauri environment (browser dev)
+      // ignore
     }
   };
 
   const toggleCollapse = async () => {
-    try {
-      const appWindow = getCurrentWindow();
-      if (!collapsed) {
-        // Save current size before collapsing
-        const size = await appWindow.innerSize();
-        savedSize.current = { width: size.width, height: size.height };
-        const factor = await appWindow.scaleFactor();
-        await appWindow.setSize(new LogicalSize(size.width / factor, COLLAPSED_HEIGHT));
-      } else if (savedSize.current) {
-        // Restore saved size
-        const factor = await appWindow.scaleFactor();
-        await appWindow.setSize(new LogicalSize(
-          savedSize.current.width / factor,
-          savedSize.current.height / factor
-        ));
+    if (isTauri()) {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const { LogicalSize } = await import("@tauri-apps/api/dpi");
+        const appWindow = getCurrentWindow();
+        if (!collapsed) {
+          // Save current logical size before collapsing
+          const factor = await appWindow.scaleFactor();
+          const phys = await appWindow.outerSize();
+          savedSize.current = { width: phys.width / factor, height: phys.height / factor };
+          await appWindow.setSize(new LogicalSize(savedSize.current.width, COLLAPSED_HEIGHT));
+        } else if (savedSize.current) {
+          await appWindow.setSize(new LogicalSize(savedSize.current.width, savedSize.current.height));
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // Not in Tauri environment (browser dev)
     }
     onToggleCollapse();
   };
