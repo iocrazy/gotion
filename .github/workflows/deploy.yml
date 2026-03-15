@@ -76,6 +76,7 @@ jobs:
             # Update RESEND_FROM in .env to use verified domain
             if [ -f .env ]; then
               sed -i 's|RESEND_FROM=.*|RESEND_FROM=Gotion <noreply@gotion.heygo.cn>|' .env
+              sed -i 's|WEBSITE_ORIGIN=.*|WEBSITE_ORIGIN=https://gotion.pages.dev,http://localhost:5173,tauri://localhost|' .env
             else
               cat > .env << 'ENVEOF'
             JWT_SECRET=${{ secrets.JWT_SECRET }}

@@ -153,7 +153,7 @@ async fn main() {
     };
 
     let website_origin = std::env::var("WEBSITE_ORIGIN")
-        .unwrap_or_else(|_| "https://gotion.pages.dev,http://localhost:5175".into());
+        .unwrap_or_else(|_| "https://gotion.pages.dev,http://localhost:5173,http://localhost:5175,tauri://localhost".into());
 
     let cors = CorsLayer::new()
         .allow_origin(
