@@ -1,0 +1,27 @@
+name: Fetch Server Logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      lines:
+        description: "Number of log lines to fetch"
+        required: false
+        default: "100"
+
+jobs:
+  fetch-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch logs from NAS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.NAS_HOST }}
+          port: ${{ secrets.NAS_SSH_PORT }}
+          username: ${{ secrets.NAS_USER }}
+          key: ${{ secrets.NAS_SSH_KEY }}
+          script: |
+            echo "=== Container status ==="
+            sudo docker ps --filter name=gotion --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+            echo "=== Last ${{ github.event.inputs.lines }} lines ==="
+            sudo docker logs gotion-server --tail ${{ github.event.inputs.lines }} 2>&1
