@@ -35,6 +35,15 @@ async fn create_task(
     Extension(auth): Extension<AuthUser>,
     Json(req): Json<CreateTaskRequest>,
 ) -> Result<(StatusCode, Json<Task>), StatusCode> {
+    // Prevent nested subtasks: if parent_id is set, verify the parent is not itself a subtask
+    if let Some(ref pid) = req.parent_id {
+        if let Ok(Some(parent)) = db::tasks::get_task(&state.pool, &auth.user_id, *pid).await {
+            if parent.parent_id.is_some() {
+                return Err(StatusCode::BAD_REQUEST);
+            }
+        }
+    }
+
     let task = db::tasks::create_task(
         &state.pool,
         &auth.user_id,

@@ -65,6 +65,7 @@ function AppContent() {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarAnimateExit, setSidebarAnimateExit] = useState(true);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showStarred, setShowStarred] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -74,10 +75,13 @@ function AppContent() {
   const [focusTask, setFocusTask] = useState<{ id: string; title: string } | null>(null);
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
 
-  // Close sidebar first, then open the target view after animation completes
+  // Close sidebar instantly (no exit animation) and open target view
   const closeSidebarThen = (action: () => void) => {
+    setSidebarAnimateExit(false);
     setIsSidebarOpen(false);
-    setTimeout(action, 250);
+    action();
+    // Re-enable exit animation for normal close (clicking overlay)
+    requestAnimationFrame(() => setSidebarAnimateExit(true));
   };
 
   return (
@@ -129,6 +133,7 @@ function AppContent() {
         {/* Sidebar */}
         <SidebarMenu
           isOpen={isSidebarOpen}
+          animateExit={sidebarAnimateExit}
           onClose={() => setIsSidebarOpen(false)}
           onSettingsClick={() => closeSidebarThen(() => setShowSettings(true))}
           onSyncClick={() => closeSidebarThen(() => setShowSync(true))}

@@ -147,12 +147,15 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
             ))}
           </div>
 
-          <button
-            className="text-red-500 text-sm font-medium text-left w-max"
-            onClick={handleAddSubtask}
-          >
-            + Add Sub-task
-          </button>
+          {/* Only allow subtasks on top-level tasks (no nested subtasks) */}
+          {!task.parent_id && (
+            <button
+              className="text-red-500 text-sm font-medium text-left w-max"
+              onClick={handleAddSubtask}
+            >
+              + Add Sub-task
+            </button>
+          )}
         </div>
 
         {/* Due Date card */}

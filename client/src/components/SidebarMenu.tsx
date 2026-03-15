@@ -24,6 +24,7 @@ import { ThemeModal } from "./ThemeModal";
 
 interface SidebarMenuProps {
   isOpen: boolean;
+  animateExit?: boolean;
   onClose: () => void;
   onSettingsClick: () => void;
   onSyncClick: () => void;
@@ -104,6 +105,7 @@ export function SidebarMenu({
   onCompletedClick,
   onCreateCategory,
   onEditCategory,
+  animateExit = true,
 }: SidebarMenuProps) {
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(true);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -122,15 +124,18 @@ export function SidebarMenu({
     }, {});
   }, [tasks]);
 
+  // When animateExit is false, skip AnimatePresence so sidebar disappears instantly
+  const showContent = animateExit ? isOpen : isOpen;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <AnimatePresence initial={false}>
+      {showContent && (
         <>
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={animateExit ? { opacity: 0 } : { opacity: 0, transition: { duration: 0 } }}
             transition={{ duration: 0.2 }}
             className="absolute inset-0 bg-black/20 z-50"
             onClick={onClose}
@@ -140,7 +145,7 @@ export function SidebarMenu({
           <motion.div
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
+            exit={animateExit ? { x: "-100%" } : { x: "-100%", transition: { duration: 0 } }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="absolute inset-y-0 left-0 w-[85%] max-w-[320px] bg-[#F5F6F8] rounded-r-3xl shadow-2xl z-50 flex flex-col overflow-y-auto"
           >
