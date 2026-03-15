@@ -81,7 +81,6 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
         const { LogicalSize } = await import("@tauri-apps/api/dpi");
         const appWindow = getCurrentWindow();
         if (!collapsed) {
-          // Save current logical size before collapsing
           const factor = await appWindow.scaleFactor();
           const phys = await appWindow.outerSize();
           savedSize.current = { width: phys.width / factor, height: phys.height / factor };
@@ -89,8 +88,8 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
         } else if (savedSize.current) {
           await appWindow.setSize(new LogicalSize(savedSize.current.width, savedSize.current.height));
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error("toggleCollapse failed:", e);
       }
     }
     onToggleCollapse();
@@ -119,16 +118,12 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
           >
             {pinned ? <Pin size={20} /> : <PinOff size={20} />}
           </button>
-          {!collapsed && (
-            <>
-              <button onClick={onSearch} className="text-gray-400">
-                <Search size={20} />
-              </button>
-              <button onClick={() => setShowMoreOptions(true)} className="text-gray-400">
-                <MoreHorizontal size={20} />
-              </button>
-            </>
-          )}
+          <button onClick={onSearch} className="text-gray-400">
+            <Search size={20} />
+          </button>
+          <button onClick={() => setShowMoreOptions(true)} className="text-gray-400">
+            <MoreHorizontal size={20} />
+          </button>
         </div>
       </div>
 
