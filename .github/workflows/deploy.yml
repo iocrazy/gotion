@@ -88,12 +88,8 @@ jobs:
             XUNHU_NOTIFY_URL=${{ secrets.XUNHU_NOTIFY_URL }}
             ENVEOF
             fi
-            # One-time password reset (remove after use)
-            grep -q 'FORCE_RESET_PASSWORD' .env 2>/dev/null || echo 'FORCE_RESET_PASSWORD=imheygo@gmail.com:12345678' >> .env
             sudo docker compose -f docker-compose.nas.yml up -d --force-recreate
             sleep 5
-            # Remove the one-time reset var so it doesn't run again
-            sed -i '/FORCE_RESET_PASSWORD/d' .env
             echo "=== Container status ==="
             sudo docker ps -a --filter name=gotion
             echo "=== Container logs (last 30 lines) ==="

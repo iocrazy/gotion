@@ -108,34 +108,6 @@ async fn main() {
         .await
         .ok();
 
-    // One-time password reset via env var: FORCE_RESET_PASSWORD=email:new_password
-    if let Ok(reset_val) = std::env::var("FORCE_RESET_PASSWORD") {
-        // Log all users for debugging
-        if let Ok(users) = db::users::list_users(&pool).await {
-            for u in &users {
-                tracing::info!("DB user: id={}, email={}, username={}", u.id, u.email, u.username);
-            }
-        }
-        if let Some((email, new_password)) = reset_val.split_once(':') {
-            use argon2::{password_hash::{rand_core::OsRng, PasswordHasher, SaltString}, Argon2};
-            match db::users::get_user_by_email(&pool, email).await {
-                Ok(Some(user)) => {
-                    let salt = SaltString::generate(&mut OsRng);
-                    let hash = Argon2::default()
-                        .hash_password(new_password.as_bytes(), &salt)
-                        .expect("Failed to hash password")
-                        .to_string();
-                    db::users::update_password(&pool, &user.id, &hash)
-                        .await
-                        .expect("Failed to update password");
-                    tracing::info!("Force-reset password for user {email}");
-                }
-                Ok(None) => tracing::warn!("FORCE_RESET_PASSWORD: user {email} not found"),
-                Err(e) => tracing::error!("FORCE_RESET_PASSWORD: database error: {e}"),
-            }
-        }
-    }
-
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB
