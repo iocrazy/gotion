@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ChevronLeft,
   ChevronDown,
   MoreHorizontal,
   Calendar as CalendarIcon,
   FileText,
+  RefreshCw,
+  ArrowDown,
+  ArrowUp,
+  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTaskStore } from "../stores/taskStore";
@@ -17,6 +21,8 @@ import { CategoryPickerModal } from "./CategoryPickerModal";
 import { NotesModal } from "./NotesModal";
 import { AttachmentList } from "./AttachmentList";
 import { format } from "date-fns";
+import { api } from "../lib/api";
+import type { BlockSyncResult } from "../lib/api";
 
 interface TaskDetailViewProps {
   onFocusTask?: (taskId: string, taskTitle: string) => void;
@@ -34,6 +40,10 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
+  const [blockSync, setBlockSync] = useState<{ loading: boolean; result: BlockSyncResult | null }>({
+    loading: false,
+    result: null,
+  });
 
   const subtasks = task ? tasks.filter((t) => t.parent_id === task.id) : [];
 
@@ -41,6 +51,29 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
     if (task) setTitle(task.title);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
+
+  // Trigger block sync when opening task detail (lazy load for non-in-progress tasks)
+  const triggerBlockSync = useCallback(async (taskId: string) => {
+    setBlockSync({ loading: true, result: null });
+    try {
+      const result = await api.syncBlocks(taskId);
+      setBlockSync({ loading: false, result });
+      // Auto-hide after 3 seconds if unchanged
+      if (result.direction === "unchanged" || result.direction === "no_notion_id" || result.direction === "not_configured") {
+        setTimeout(() => setBlockSync((prev) => ({ ...prev, result: null })), 2000);
+      } else {
+        setTimeout(() => setBlockSync((prev) => ({ ...prev, result: null })), 4000);
+      }
+    } catch {
+      setBlockSync({ loading: false, result: null });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedTaskId) {
+      triggerBlockSync(selectedTaskId);
+    }
+  }, [selectedTaskId, triggerBlockSync]);
 
   // Close on Escape
   useEffect(() => {
@@ -114,6 +147,49 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
           <MoreHorizontal size={24} />
         </button>
       </div>
+
+      {/* Block sync indicator */}
+      {(blockSync.loading || blockSync.result) && (
+        <div className="px-6 pb-2">
+          <div
+            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
+              blockSync.loading
+                ? "bg-blue-50 text-blue-600"
+                : blockSync.result?.direction === "pulled"
+                  ? "bg-green-50 text-green-600"
+                  : blockSync.result?.direction === "pushed"
+                    ? "bg-orange-50 text-orange-600"
+                    : blockSync.result?.direction === "error"
+                      ? "bg-red-50 text-red-600"
+                      : "bg-gray-50 text-gray-500"
+            }`}
+          >
+            {blockSync.loading ? (
+              <>
+                <RefreshCw size={12} className="animate-spin" />
+                Syncing notes with Notion...
+              </>
+            ) : blockSync.result?.direction === "pulled" ? (
+              <>
+                <ArrowDown size={12} />
+                Notes updated from Notion ({blockSync.result.block_count} blocks)
+              </>
+            ) : blockSync.result?.direction === "pushed" ? (
+              <>
+                <ArrowUp size={12} />
+                Notes pushed to Notion
+              </>
+            ) : blockSync.result?.direction === "error" ? (
+              <>Sync failed</>
+            ) : blockSync.result?.direction === "unchanged" ? (
+              <>
+                <Check size={12} />
+                Notes in sync
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div

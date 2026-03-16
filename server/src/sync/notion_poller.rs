@@ -7,6 +7,7 @@ use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::db;
+use crate::sync::block_sync;
 use crate::sync::conflict;
 use crate::sync::notion_client::NotionClient;
 use crate::ws::WsBroadcast;
@@ -331,6 +332,30 @@ async fn do_sync(
                     } else {
                         broadcast.send(sync_user_id.clone(), WsMessage::TaskCreated(task));
                     }
+                }
+            }
+        }
+
+        // Sync blocks for in-progress (Todo) tasks that have a notion_id
+        let final_status = if notion_status == "Done" { TaskStatus::Done } else { TaskStatus::Todo };
+        if final_status == TaskStatus::Todo {
+            // Find the local task (it might have just been created above)
+            if let Some(local) = find_task_by_notion_id(pool, &page.id).await {
+                let result = block_sync::sync_blocks_for_task(
+                    pool,
+                    client,
+                    broadcast,
+                    &sync_user_id,
+                    local.id,
+                    &page.id,
+                    notion_edited,
+                )
+                .await;
+                if result.direction != "unchanged" {
+                    tracing::info!(
+                        "Block sync for '{}': direction={}, blocks={}",
+                        notion_title, result.direction, result.block_count
+                    );
                 }
             }
         }

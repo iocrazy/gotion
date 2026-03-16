@@ -118,6 +118,12 @@ async fn main() {
     .await
     .ok();
 
+    // Track when blocks were last synced with Notion
+    sqlx::query("ALTER TABLE tasks ADD COLUMN content_synced_at TEXT")
+        .execute(&pool)
+        .await
+        .ok();
+
     let broadcast = ws::WsBroadcast::new();
 
     // Create Notion client and load persisted config from DB

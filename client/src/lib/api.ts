@@ -55,6 +55,11 @@ export interface Category {
   created_at: string;
 }
 
+export interface BlockSyncResult {
+  direction: "pulled" | "pushed" | "unchanged" | "error" | "no_notion_id" | "not_configured";
+  block_count: number;
+}
+
 export interface Attachment {
   id: string;
   task_id: string;
@@ -139,6 +144,15 @@ export const api = {
       body: JSON.stringify(blocks),
     });
     if (!res.ok) throw new Error(`Failed to update blocks: ${res.status}`);
+    return res.json();
+  },
+
+  async syncBlocks(taskId: string): Promise<BlockSyncResult> {
+    const res = await fetch(`${getBaseUrl()}/api/tasks/${taskId}/sync-blocks`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to sync blocks: ${res.status}`);
     return res.json();
   },
 

@@ -451,6 +451,31 @@ impl NotionClient {
         Ok(all_blocks)
     }
 
+    /// Get a single page by ID (to check last_edited_time).
+    pub async fn get_page(&self, page_id: &str) -> Result<NotionPage, String> {
+        self.acquire_rate_limit().await;
+        let config = self.config.read().await;
+
+        let raw_resp = self
+            .client
+            .get(&format!("https://api.notion.com/v1/pages/{}", page_id))
+            .header("Authorization", format!("Bearer {}", config.token))
+            .header("Notion-Version", "2022-06-28")
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        let status = raw_resp.status();
+        let text = raw_resp.text().await.map_err(|e| format!("Read body failed: {}", e))?;
+
+        if !status.is_success() {
+            return Err(format!("Notion API {}: {}", status, &text[..text.len().min(300)]));
+        }
+
+        serde_json::from_str(&text)
+            .map_err(|e| format!("Parse failed: {} — body: {}", e, &text[..text.len().min(300)]))
+    }
+
     /// Create a new page in the database.
     /// If `parent_notion_id` is provided and `parent_item` is mapped,
     /// the page is created as a sub-item with the parent relation set.
@@ -623,6 +648,86 @@ impl NotionClient {
         }
 
         Ok(())
+    }
+
+    /// Delete a single block by ID.
+    pub async fn delete_block(&self, block_id: &str) -> Result<(), reqwest::Error> {
+        self.acquire_rate_limit().await;
+        let config = self.config.read().await;
+
+        self.client
+            .delete(&format!("https://api.notion.com/v1/blocks/{}", block_id))
+            .header("Authorization", format!("Bearer {}", config.token))
+            .header("Notion-Version", "2022-06-28")
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Append children blocks to a page.
+    pub async fn append_children(
+        &self,
+        page_id: &str,
+        children: &[serde_json::Value],
+    ) -> Result<(), String> {
+        if children.is_empty() {
+            return Ok(());
+        }
+
+        self.acquire_rate_limit().await;
+        let config = self.config.read().await;
+
+        let body = serde_json::json!({ "children": children });
+
+        let raw_resp = self
+            .client
+            .patch(&format!(
+                "https://api.notion.com/v1/blocks/{}/children",
+                page_id
+            ))
+            .header("Authorization", format!("Bearer {}", config.token))
+            .header("Notion-Version", "2022-06-28")
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        if !raw_resp.status().is_success() {
+            let status = raw_resp.status();
+            let text = raw_resp.text().await.unwrap_or_default();
+            return Err(format!(
+                "Notion append_children failed ({}): {}",
+                status,
+                &text[..text.len().min(500)]
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Replace all children blocks of a page (delete existing, then append new).
+    pub async fn replace_page_blocks(
+        &self,
+        page_id: &str,
+        new_blocks: &[serde_json::Value],
+    ) -> Result<(), String> {
+        // 1. Fetch existing block IDs
+        let existing = self
+            .get_blocks(page_id)
+            .await
+            .map_err(|e| format!("Failed to get existing blocks: {}", e))?;
+
+        // 2. Delete each existing block
+        for block in &existing {
+            self.delete_block(&block.id)
+                .await
+                .map_err(|e| format!("Failed to delete block {}: {}", block.id, e))?;
+        }
+
+        // 3. Append new blocks
+        self.append_children(page_id, new_blocks).await
     }
 
     /// Archive (soft-delete) a page.
