@@ -39,7 +39,6 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  const [notes, setNotes] = useState("");
   const [blockSync, setBlockSync] = useState<{ loading: boolean; result: BlockSyncResult | null }>({
     loading: false,
     result: null,
@@ -265,9 +264,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
             icon={<FileText size={20} />}
             label="Notes"
             right={
-              <span className="text-gray-400 text-sm">
-                {notes ? "Edit" : "Add"}
-              </span>
+              <span className="text-gray-400 text-sm">Edit</span>
             }
             hasBorder={false}
             onClick={() => setShowNotes(true)}
@@ -317,8 +314,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
       <NotesModal
         open={showNotes}
         onClose={() => setShowNotes(false)}
-        initialNotes={notes}
-        onSave={setNotes}
+        taskId={task.id}
       />
     </motion.div>
   );

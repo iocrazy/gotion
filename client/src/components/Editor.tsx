@@ -45,7 +45,7 @@ export function Editor({ taskId }: EditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm prose-invert focus:outline-none max-w-none min-h-[100px] px-4 py-2 text-sm font-light",
+          "prose prose-sm focus:outline-none max-w-none min-h-[100px] px-4 py-2 text-sm",
       },
       handleDrop: (_view, event) => {
         const files = event.dataTransfer?.files;

@@ -1,34 +1,15 @@
-import { useState, useEffect } from "react";
-import { X, Check } from "lucide-react";
+import { X } from "lucide-react";
 import { motion } from "motion/react";
-
-const MAX_LENGTH = 3000;
+import { Editor } from "./Editor";
 
 interface NotesModalProps {
   open: boolean;
   onClose: () => void;
-  initialNotes: string;
-  onSave: (notes: string) => void;
+  taskId: string;
 }
 
-export function NotesModal({
-  open,
-  onClose,
-  initialNotes,
-  onSave,
-}: NotesModalProps) {
-  const [notes, setNotes] = useState(initialNotes);
-
-  useEffect(() => {
-    if (open) setNotes(initialNotes);
-  }, [open, initialNotes]);
-
+export function NotesModal({ open, onClose, taskId }: NotesModalProps) {
   if (!open) return null;
-
-  const handleSave = () => {
-    onSave(notes);
-    onClose();
-  };
 
   return (
     <>
@@ -51,21 +32,10 @@ export function NotesModal({
             <X size={24} />
           </button>
           <h2 className="text-lg font-semibold text-gray-800">Notes</h2>
-          <button onClick={handleSave} className="text-red-500">
-            <Check size={24} />
-          </button>
+          <div className="w-6" />
         </div>
-        <div className="flex-1 p-6 flex flex-col">
-          <textarea
-            className="flex-1 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400"
-            placeholder="Add Notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value.slice(0, MAX_LENGTH))}
-            autoFocus
-          />
-          <div className="text-right text-xs text-gray-400 mt-2">
-            {notes.length}/{MAX_LENGTH}
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <Editor taskId={taskId} />
         </div>
       </motion.div>
     </>
