@@ -61,6 +61,11 @@ html, body, #root {
   color: #1f2937;
 }
 
+/* TipTap text color adapts to theme */
+.tiptap {
+  color: var(--text-primary, #1f2937);
+}
+
 :root[data-theme="dark"] .tiptap code {
   background: var(--bg-hover);
 }
@@ -71,6 +76,36 @@ html, body, #root {
 
 :root[data-theme="dark"] .tiptap pre code {
   color: var(--text-primary);
+}
+
+/* Neobrutalism TipTap overrides */
+:root[data-theme-style="neobrutalism"] .tiptap code {
+  background: var(--bg-hover);
+  border: 1.5px solid var(--border);
+}
+
+:root[data-theme-style="neobrutalism"] .tiptap pre {
+  background: var(--bg-hover);
+  border: 2px solid var(--border);
+  border-radius: 12px 4px 16px 4px / 4px 16px 4px 12px;
+  box-shadow: 3px 3px 0 var(--border);
+}
+
+:root[data-theme-style="neobrutalism"] .tiptap pre code {
+  color: var(--text-primary);
+}
+
+/* Kbd styling for Docs modal across themes */
+:root[data-theme="dark"] kbd {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme-style="neobrutalism"] kbd {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border: 1.5px solid var(--border);
+  box-shadow: 2px 2px 0 var(--border);
 }
 
 input::placeholder {
