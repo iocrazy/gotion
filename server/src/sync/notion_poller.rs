@@ -206,10 +206,13 @@ async fn do_sync(
         match existing {
             Some(local_task) => {
                 tracing::info!(
-                    "Merging page '{}' (notion_edited={}) with local '{}' (title_updated_at={})",
+                    "Merging page '{}' notion_status_raw='{}' notion_edited={} | local status={:?} notion_status={:?} status_updated_at={} title_updated_at={}",
                     notion_title,
+                    notion_status_raw,
                     notion_edited,
-                    local_task.title,
+                    local_task.status,
+                    local_task.notion_status,
+                    local_task.status_updated_at,
                     local_task.title_updated_at,
                 );
                 let merge = conflict::merge_task(
@@ -231,8 +234,8 @@ async fn do_sync(
                     local_task.notion_status.as_deref() != Some(&notion_status_raw);
 
                 tracing::info!(
-                    "Merge result: local_changed={}, notify_notion={:?}, cat_changed={}, starred_changed={}, parent_changed={}",
-                    merge.local_changed, merge.notify_notion, category_changed, starred_changed, parent_changed,
+                    "Merge result for '{}': local_changed={}, notify_notion={:?}, cat_changed={}, starred_changed={}, parent_changed={}, notion_status_changed={}, merged_status={:?}",
+                    notion_title, merge.local_changed, merge.notify_notion, category_changed, starred_changed, parent_changed, notion_status_changed, merge.status,
                 );
 
                 if merge.local_changed || category_changed || starred_changed || parent_changed || notion_status_changed {
@@ -276,6 +279,10 @@ async fn do_sync(
                         TaskStatus::Todo => field_map.status_todo.as_str(),
                         TaskStatus::Done => field_map.status_done.as_str(),
                     };
+                    tracing::warn!(
+                        "Pushing back to Notion for '{}': fields={:?}, status_str='{}', status_todo='{}', status_done='{}'",
+                        notion_title, merge.notify_notion, status_str, field_map.status_todo, field_map.status_done,
+                    );
                     let due_str = merge.due_date.map(|d| d.to_string());
                     let title_arg = if merge.notify_notion.contains(&"title".to_string()) {
                         Some(merge.title.as_str())

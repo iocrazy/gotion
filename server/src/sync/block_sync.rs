@@ -58,9 +58,15 @@ pub async fn sync_blocks_for_task(
         _ => false,
     };
 
+    tracing::info!(
+        "Block sync decision for task {}: needs_pull={}, needs_push={}, content_synced_at={:?}, notion_edited={}, local_max_updated={:?}, local_blocks={}",
+        task_id, needs_pull, needs_push, content_synced_at, notion_edited, local_max_updated, local_blocks.len(),
+    );
+
     if needs_pull && needs_push {
         // Both sides changed — last-write-wins
         let local_at = local_max_updated.unwrap_or(Utc::now());
+        tracing::info!("Block sync conflict: notion_edited={} vs local_at={}, winner={}", notion_edited, local_at, if notion_edited >= local_at { "notion" } else { "local" });
         if notion_edited >= local_at {
             pull_from_notion(pool, client, broadcast, user_id, task_id, notion_id).await
         } else {
