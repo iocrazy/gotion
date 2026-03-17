@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   Palette,
+  HelpCircle,
 } from "lucide-react";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useTaskStore } from "../stores/taskStore";
@@ -21,6 +22,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 import { CategoryIcon } from "../lib/categoryIcons";
 import { ThemeModal } from "./ThemeModal";
+import { DocsModal } from "./DocsModal";
 
 interface SidebarMenuProps {
   isOpen: boolean;
@@ -109,6 +111,7 @@ export function SidebarMenu({
 }: SidebarMenuProps) {
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(true);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
   const themeId = useSettingsStore((s) => s.themeId);
 
   const categories = useCategoryStore((s) => s.categories);
@@ -271,12 +274,20 @@ export function SidebarMenu({
                 label="Theme"
                 onClick={() => setShowThemeModal(true)}
               />
+              <MenuItem
+                icon={<HelpCircle size={20} className="text-blue-400" />}
+                label="Docs"
+                onClick={() => setShowDocs(true)}
+              />
             </div>
           </motion.div>
 
           {/* Theme Modal - rendered outside drawer to avoid clipping */}
           {showThemeModal && (
             <ThemeModal onClose={() => setShowThemeModal(false)} />
+          )}
+          {showDocs && (
+            <DocsModal onClose={() => setShowDocs(false)} />
           )}
         </>
       )}
