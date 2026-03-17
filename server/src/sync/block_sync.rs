@@ -45,7 +45,11 @@ pub async fn sync_blocks_for_task(
 
     let needs_pull = match content_synced_at {
         None => true, // Never synced
-        Some(synced_at) => notion_edited > synced_at,
+        Some(synced_at) => {
+            // Also re-pull if local blocks are empty but synced_at exists
+            // (e.g., previous sync saved empty due to a bug)
+            notion_edited > synced_at || local_blocks.is_empty()
+        }
     };
 
     let needs_push = match (content_synced_at, local_max_updated) {
