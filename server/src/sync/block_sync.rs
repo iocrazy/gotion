@@ -94,12 +94,19 @@ async fn pull_from_notion(
         }
     };
 
-    // Convert Notion blocks to raw JSON values for the converter
+    // Convert Notion blocks to raw JSON values for the converter.
+    // NotionBlock uses #[serde(flatten)] on `data`, so `type` is captured separately
+    // in `block_type`. We must reconstruct the full object with `type` included,
+    // because the converter dispatches on block["type"].
     let block_values: Vec<serde_json::Value> = notion_blocks
         .iter()
         .map(|b| {
-            // The block has id, type, and flattened data — reconstruct for converter
-            b.data.clone()
+            let mut obj = match &b.data {
+                serde_json::Value::Object(m) => m.clone(),
+                _ => serde_json::Map::new(),
+            };
+            obj.insert("type".to_string(), serde_json::Value::String(b.block_type.clone()));
+            serde_json::Value::Object(obj)
         })
         .collect();
 
