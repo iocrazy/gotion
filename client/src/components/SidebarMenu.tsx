@@ -152,8 +152,8 @@ export function SidebarMenu({
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="absolute inset-y-0 left-0 w-[85%] max-w-[320px] bg-[#F5F6F8] rounded-r-3xl shadow-2xl z-50 flex flex-col overflow-y-auto"
           >
-            {/* Logo Area */}
-            <div className="px-6 pt-10 pb-6 flex items-center gap-3">
+            {/* Logo Area — draggable */}
+            <div data-tauri-drag-region className="px-6 pt-10 pb-6 flex items-center gap-3 cursor-grab active:cursor-grabbing">
               <CheckCircle2 size={32} className="text-red-500 fill-red-100" />
               <span className="text-3xl font-bold text-red-500">Gotion</span>
             </div>
