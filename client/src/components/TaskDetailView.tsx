@@ -48,20 +48,22 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
 
   const titleRef = useRef(title);
   titleRef.current = title;
+  const taskIdRef = useRef(selectedTaskId);
+  taskIdRef.current = selectedTaskId;
 
   useEffect(() => {
     if (task) setTitle(task.title);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
 
-  // Save unsaved title when leaving the detail view
+  // Save unsaved title on unmount or when switching tasks
   useEffect(() => {
+    const savedTaskId = selectedTaskId;
     return () => {
-      const currentTask = useTaskStore.getState().tasks.find(
-        (t) => t.id === selectedTaskId
-      );
+      const store = useTaskStore.getState();
+      const currentTask = store.tasks.find((t) => t.id === savedTaskId);
       if (currentTask && titleRef.current !== currentTask.title && titleRef.current.trim()) {
-        useTaskStore.getState().updateTask(currentTask.id, { title: titleRef.current });
+        store.updateTask(currentTask.id, { title: titleRef.current });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +108,21 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
     ? categories.find((c) => c.id === task.category_id)
     : null;
 
+  // Auto-save title after 2s of no typing
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!task || title === task.title || !title.trim()) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      updateTask(task.id, { title });
+    }, 2000);
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [title, task, updateTask]);
+
   const handleTitleBlur = () => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     if (title !== task.title && title.trim()) {
       updateTask(task.id, { title });
     }
