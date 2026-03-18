@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ChevronLeft,
   ChevronDown,
@@ -46,8 +46,24 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
 
   const subtasks = task ? tasks.filter((t) => t.parent_id === task.id) : [];
 
+  const titleRef = useRef(title);
+  titleRef.current = title;
+
   useEffect(() => {
     if (task) setTitle(task.title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTaskId]);
+
+  // Save unsaved title when leaving the detail view
+  useEffect(() => {
+    return () => {
+      const currentTask = useTaskStore.getState().tasks.find(
+        (t) => t.id === selectedTaskId
+      );
+      if (currentTask && titleRef.current !== currentTask.title && titleRef.current.trim()) {
+        useTaskStore.getState().updateTask(currentTask.id, { title: titleRef.current });
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
 
