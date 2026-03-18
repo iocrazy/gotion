@@ -24,12 +24,32 @@ export function AppShell({ className, children, ...props }: AppShellProps) {
     : "shadow-[0_0_0_1px_var(--border),0_10px_25px_-5px_rgba(0,0,0,0.1)]";
   const neoShadow = isNeo ? "4px 4px 0 #3c2a14" : undefined;
 
-  // Linux: set body background to match theme so rounded corners look clean
+  // Linux: set body/html background to transparent so rounded corners show desktop
   useEffect(() => {
     if (isLinux) {
-      document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      document.documentElement.style.backgroundColor = "transparent";
+      document.body.style.backgroundColor = "transparent";
     }
-  }, [r, g, b]);
+  }, []);
+
+  // On Linux, wrap content in a padded container so rounded corners are visible
+  if (isLinux) {
+    return (
+      <div className="w-full h-screen p-1" style={{ backgroundColor: "transparent" }}>
+        <div
+          className={cn(
+            "w-full h-full rounded-2xl overflow-hidden flex flex-col",
+            shadow,
+            className
+          )}
+          style={{ backgroundColor: bgColor, isolation: "isolate", boxShadow: neoShadow }}
+          {...props}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
