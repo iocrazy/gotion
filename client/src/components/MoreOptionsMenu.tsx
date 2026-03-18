@@ -216,7 +216,7 @@ export function MoreOptionsMenu({
           </div>
           <button
             className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
-              showSubtasks ? "bg-blue-500" : "bg-gray-300"
+              showSubtasks ? "bg-red-500" : "bg-gray-300"
             }`}
             onClick={isPro ? onToggleSubtasks : openUpgrade}
           >
@@ -270,10 +270,10 @@ export function MoreOptionsMenu({
                     <div
                       className={`w-[18px] h-[18px] rounded flex items-center justify-center border transition-colors ${
                         isGroupSelected(group)
-                          ? "bg-blue-500 border-blue-500"
+                          ? "bg-red-500 border-red-500"
                           : isGroupPartial(group)
-                          ? "bg-blue-500 border-blue-500"
-                          : "border-gray-300 bg-white"
+                          ? "bg-red-500 border-red-500"
+                          : "border-gray-300 bg-transparent"
                       }`}
                     >
                       {isGroupSelected(group) && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -295,8 +295,8 @@ export function MoreOptionsMenu({
                       <div
                         className={`w-[18px] h-[18px] rounded flex items-center justify-center border transition-colors ${
                           isSelected(option.value)
-                            ? "bg-blue-500 border-blue-500"
-                            : "border-gray-300 bg-white"
+                            ? "bg-red-500 border-red-500"
+                            : "border-gray-300 bg-transparent"
                         }`}
                       >
                         {isSelected(option.value) && <Check size={12} className="text-white" strokeWidth={3} />}
