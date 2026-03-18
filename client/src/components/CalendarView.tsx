@@ -183,9 +183,9 @@ export function CalendarView({ onSearch, onMenuClick }: CalendarViewProps) {
                     text-sm transition-colors
                     ${
                       selected
-                        ? "bg-red-500 text-white shadow-md shadow-red-200 font-bold"
+                        ? "bg-red-500 text-white font-semibold"
                         : todayDay
-                          ? "text-red-500 font-bold"
+                          ? "text-red-500 font-semibold"
                           : "text-gray-700 hover:bg-gray-100"
                     }
                   `}
