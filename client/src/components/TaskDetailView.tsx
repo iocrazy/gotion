@@ -119,7 +119,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
         isDone ? "bg-gray-200" : "bg-[#F5F6F8]"
       }`}
     >
-      {/* Header */}
+      {/* Header — spacer is draggable */}
       <div className="px-6 pt-4 pb-4 flex items-center justify-between">
         <button
           onClick={() => selectTask(null)}
@@ -131,6 +131,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
         >
           <ChevronLeft size={20} />
         </button>
+        <div data-tauri-drag-region className="flex-1 h-8" />
         <button
           className={`flex items-center gap-1 font-medium ${
             isDone ? "text-gray-500" : "text-gray-400"
@@ -139,6 +140,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
         >
           {category?.name || "No Category"} <ChevronDown size={16} />
         </button>
+        <div data-tauri-drag-region className="flex-1 h-8" />
         <button
           className={`relative ${isDone ? "text-gray-500" : "text-gray-800"}`}
           onClick={() => setShowMoreOptions(true)}
