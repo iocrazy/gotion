@@ -69,8 +69,8 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
       const next = !pinned;
       await appWindow.setAlwaysOnTop(next);
       setPinned(next);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("togglePin failed:", e);
     }
   };
 
@@ -84,8 +84,11 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
           const factor = await appWindow.scaleFactor();
           const phys = await appWindow.outerSize();
           savedSize.current = { width: phys.width / factor, height: phys.height / factor };
-          await appWindow.setSize(new LogicalSize(savedSize.current.width, COLLAPSED_HEIGHT));
+          const targetHeight = COLLAPSED_HEIGHT;
+          console.log(`Collapsing: ${savedSize.current.width}x${savedSize.current.height} -> ${savedSize.current.width}x${targetHeight}`);
+          await appWindow.setSize(new LogicalSize(savedSize.current.width, targetHeight));
         } else if (savedSize.current) {
+          console.log(`Expanding: -> ${savedSize.current.width}x${savedSize.current.height}`);
           await appWindow.setSize(new LogicalSize(savedSize.current.width, savedSize.current.height));
         }
       } catch (e) {
