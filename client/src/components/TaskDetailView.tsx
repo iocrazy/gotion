@@ -108,23 +108,29 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
     ? categories.find((c) => c.id === task.category_id)
     : null;
 
-  // Auto-save title after 2s of no typing
+  // Debounced title save — fires 2s after last keystroke
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const originalTitleRef = useRef(task?.title ?? "");
+
   useEffect(() => {
-    if (!task || title === task.title || !title.trim()) return;
+    if (task) originalTitleRef.current = task.title;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTaskId]);
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    if (!task || !newTitle.trim()) return;
     saveTimeoutRef.current = setTimeout(() => {
-      updateTask(task.id, { title });
+      updateTask(task.id, { title: newTitle });
     }, 2000);
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [title, task, updateTask]);
+  };
 
   const handleTitleBlur = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (title !== task.title && title.trim()) {
+    if (task && title !== originalTitleRef.current && title.trim()) {
       updateTask(task.id, { title });
+      originalTitleRef.current = title;
     }
   };
 
@@ -239,7 +245,7 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             onBlur={handleTitleBlur}
             className={`text-2xl font-semibold mb-8 w-full bg-transparent outline-none ${
               isDone ? "text-gray-500 line-through" : "text-gray-800"
