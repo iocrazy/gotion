@@ -101,7 +101,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header — drag region for window movement */}
-      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between">
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between">
         <button onClick={onMenuClick} className="text-gray-600">
           <Menu size={24} />
         </button>
