@@ -107,7 +107,7 @@ async fn get_cached_categories(state: tauri::State<'_, CacheDb>) -> Result<Strin
 #[tauri::command]
 async fn get_settings(state: tauri::State<'_, CacheDb>) -> Result<String, String> {
     let server_url = state.get_setting("server_url")?
-        .unwrap_or_else(|| "http://localhost:3001".to_string());
+        .unwrap_or_else(|| "https://gotion.heygo.cn:88".to_string());
     let bg_opacity = state.get_setting("bg_opacity")?
         .and_then(|s| s.parse::<f64>().ok())
         .unwrap_or(1.0);
