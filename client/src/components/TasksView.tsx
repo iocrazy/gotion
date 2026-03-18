@@ -58,21 +58,8 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
     });
   }, []);
 
-  // Manual window dragging (ai-tracker pattern) — must be synchronous
-  useEffect(() => {
-    if (!isTauri()) return;
-    const headerEl = document.getElementById("gotion-header");
-    if (!headerEl) return;
-
-    const onMouseDown = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
-      if (e.detail >= 2) return;
-      tauriRef.current?.win.startDragging();
-    };
-
-    headerEl.addEventListener("mousedown", onMouseDown);
-    return () => headerEl.removeEventListener("mousedown", onMouseDown);
-  }, []);
+  // Drag via spacer element only (data-tauri-drag-region on the spacer div)
+  // Buttons are completely separate — no event interference
 
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort);
@@ -123,13 +110,13 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header — draggable via manual startDragging, buttons excluded via data-no-drag */}
-      <div id="gotion-header" className="px-6 pt-4 pb-3 flex items-center justify-between cursor-grab active:cursor-grabbing">
-        <button data-no-drag onClick={onMenuClick} className="text-gray-600">
+      {/* Header — only spacer div is draggable, buttons are completely separate */}
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between">
+        <button onClick={onMenuClick} className="text-gray-600">
           <Menu size={24} />
         </button>
-        <div className="flex-1" />
-        <div data-no-drag className="flex items-center gap-3">
+        <div data-tauri-drag-region className="flex-1 h-8 cursor-grab active:cursor-grabbing" />
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleCollapse}
             className="text-gray-400"

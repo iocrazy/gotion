@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   ChevronLeft,
@@ -15,6 +16,13 @@ interface SettingsViewProps {
 export function SettingsView({ onClose }: SettingsViewProps) {
   const bgOpacity = useSettingsStore((s) => s.bgOpacity);
   const setBgOpacity = useSettingsStore((s) => s.setBgOpacity);
+  const [appVersion, setAppVersion] = useState("0.0.0");
+
+  useEffect(() => {
+    import("@tauri-apps/api/app").then(({ getVersion }) => {
+      getVersion().then(setAppVersion);
+    }).catch(() => {});
+  }, []);
 
   const handleOpacityChange = (value: string) => {
     const parsed = parseFloat(value);
@@ -82,7 +90,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
             icon={<Info size={20} />}
             label="Gotion"
             right={
-              <span className="text-sm text-gray-400">v0.1.0</span>
+              <span className="text-sm text-gray-400">v{appVersion}</span>
             }
           />
           <SettingItem
