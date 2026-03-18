@@ -426,7 +426,7 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
           <button
             onClick={loadSchema}
             disabled={schemaLoading}
-            className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+            className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
           >
             <RefreshCw size={12} className={schemaLoading ? "animate-spin" : ""} />
             {schemaLoading ? "Loading..." : "Load Schema"}
@@ -526,7 +526,7 @@ export function SyncView({ onClose, syncStatus }: SyncViewProps) {
             <button
               onClick={handleSyncNow}
               disabled={syncing}
-              className="w-full bg-blue-500 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-red-500 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {syncing ? (
                 <Loader2 size={16} className="animate-spin" />
