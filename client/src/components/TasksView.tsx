@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Menu, Search, MoreHorizontal, Plus, Pin, PinOff, Minus, Maximize2 } from "lucide-react";
 import { isTauri } from "../lib/tauri";
 import { CategoryTabs } from "./CategoryTabs";
@@ -44,6 +44,26 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   });
   const [pinned, setPinned] = useState(false);
   const savedSize = useRef<{ width: number; height: number } | null>(null);
+
+  // Manual window dragging (ai-tracker pattern) — more reliable than data-tauri-drag-region
+  useEffect(() => {
+    if (!isTauri()) return;
+    const headerEl = document.getElementById("gotion-header");
+    if (!headerEl) return;
+
+    const onMouseDown = async (e: MouseEvent) => {
+      // Skip if clicking on interactive elements
+      if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
+      if (e.detail >= 2) return; // Skip double-click
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        getCurrentWindow().startDragging();
+      } catch { /* ignore */ }
+    };
+
+    headerEl.addEventListener("mousedown", onMouseDown);
+    return () => headerEl.removeEventListener("mousedown", onMouseDown);
+  }, []);
 
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort);
@@ -100,13 +120,13 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header — drag region for window movement */}
-      <div data-tauri-drag-region className="px-6 pt-4 pb-3 flex items-center justify-between">
-        <button onMouseDown={(e) => e.stopPropagation()} onClick={onMenuClick} className="text-gray-600">
+      {/* Header — draggable via manual startDragging, buttons excluded via data-no-drag */}
+      <div id="gotion-header" className="px-6 pt-4 pb-3 flex items-center justify-between cursor-grab active:cursor-grabbing">
+        <button data-no-drag onClick={onMenuClick} className="text-gray-600">
           <Menu size={24} />
         </button>
-        <div data-tauri-drag-region className="flex-1" />
-        <div className="flex items-center gap-3" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex-1" />
+        <div data-no-drag className="flex items-center gap-3">
           <button
             onClick={toggleCollapse}
             className="text-gray-400"
