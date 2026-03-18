@@ -13,12 +13,12 @@ export function BottomNav({ currentView, onViewChange }: BottomNavProps) {
       <button
         onClick={() => onViewChange("tasks")}
         className={`flex flex-col items-center gap-1 ${
-          currentView === "tasks" ? "text-blue-500" : "text-gray-400"
+          currentView === "tasks" ? "text-red-500" : "text-gray-400"
         }`}
       >
         <div
           className={`p-1 rounded-lg ${
-            currentView === "tasks" ? "bg-blue-50" : ""
+            currentView === "tasks" ? "bg-red-50" : ""
           }`}
         >
           <div className="w-5 h-5 border-2 border-current rounded-sm flex flex-col gap-0.5 p-0.5">
@@ -31,7 +31,7 @@ export function BottomNav({ currentView, onViewChange }: BottomNavProps) {
       <button
         onClick={() => onViewChange("calendar")}
         className={`flex flex-col items-center gap-1 ${
-          currentView === "calendar" ? "text-blue-500" : "text-gray-400"
+          currentView === "calendar" ? "text-red-500" : "text-gray-400"
         }`}
       >
         <CalendarIcon size={24} strokeWidth={2} />
@@ -40,7 +40,7 @@ export function BottomNav({ currentView, onViewChange }: BottomNavProps) {
       <button
         onClick={() => onViewChange("mine")}
         className={`flex flex-col items-center gap-1 ${
-          currentView === "mine" ? "text-blue-500" : "text-gray-400"
+          currentView === "mine" ? "text-red-500" : "text-gray-400"
         }`}
       >
         <User size={24} strokeWidth={2} />
