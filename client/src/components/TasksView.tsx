@@ -45,20 +45,25 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   const [pinned, setPinned] = useState(false);
   const savedSize = useRef<{ width: number; height: number } | null>(null);
 
-  // Manual window dragging (ai-tracker pattern) — more reliable than data-tauri-drag-region
+  // Pre-load Tauri window API for synchronous access in drag handler
+  const tauriWindowRef = useRef<{ startDragging: () => void } | null>(null);
+  useEffect(() => {
+    if (!isTauri()) return;
+    import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+      tauriWindowRef.current = getCurrentWindow();
+    });
+  }, []);
+
+  // Manual window dragging (ai-tracker pattern) — must be synchronous
   useEffect(() => {
     if (!isTauri()) return;
     const headerEl = document.getElementById("gotion-header");
     if (!headerEl) return;
 
-    const onMouseDown = async (e: MouseEvent) => {
-      // Skip if clicking on interactive elements
+    const onMouseDown = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
-      if (e.detail >= 2) return; // Skip double-click
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        getCurrentWindow().startDragging();
-      } catch { /* ignore */ }
+      if (e.detail >= 2) return;
+      tauriWindowRef.current?.startDragging();
     };
 
     headerEl.addEventListener("mousedown", onMouseDown);
