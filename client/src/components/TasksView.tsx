@@ -45,12 +45,16 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   const [pinned, setPinned] = useState(false);
   const savedSize = useRef<{ width: number; height: number } | null>(null);
 
-  // Pre-load Tauri window API for synchronous access in drag handler
-  const tauriWindowRef = useRef<{ startDragging: () => void } | null>(null);
+  // Pre-load Tauri APIs for synchronous access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tauriRef = useRef<{ win: any; LogicalSize: any } | null>(null);
   useEffect(() => {
     if (!isTauri()) return;
-    import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
-      tauriWindowRef.current = getCurrentWindow();
+    Promise.all([
+      import("@tauri-apps/api/window"),
+      import("@tauri-apps/api/dpi"),
+    ]).then(([{ getCurrentWindow }, { LogicalSize }]) => {
+      tauriRef.current = { win: getCurrentWindow(), LogicalSize };
     });
   }, []);
 
@@ -63,7 +67,7 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
     const onMouseDown = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
       if (e.detail >= 2) return;
-      tauriWindowRef.current?.startDragging();
+      tauriRef.current?.win.startDragging();
     };
 
     headerEl.addEventListener("mousedown", onMouseDown);
@@ -87,12 +91,11 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   };
 
   const togglePin = async () => {
-    if (!isTauri()) return;
+    const t = tauriRef.current;
+    if (!t) return;
     try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const appWindow = getCurrentWindow();
       const next = !pinned;
-      await appWindow.setAlwaysOnTop(next);
+      await t.win.setAlwaysOnTop(next);
       setPinned(next);
     } catch (e) {
       console.error("togglePin failed:", e);
@@ -100,21 +103,16 @@ export function TasksView({ onAdd, onSearch, onMenuClick, collapsed, onToggleCol
   };
 
   const toggleCollapse = async () => {
-    if (isTauri()) {
+    const t = tauriRef.current;
+    if (t) {
       try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const { LogicalSize } = await import("@tauri-apps/api/dpi");
-        const appWindow = getCurrentWindow();
         if (!collapsed) {
-          const factor = await appWindow.scaleFactor();
-          const phys = await appWindow.outerSize();
+          const factor = await t.win.scaleFactor();
+          const phys = await t.win.outerSize();
           savedSize.current = { width: phys.width / factor, height: phys.height / factor };
-          const targetHeight = COLLAPSED_HEIGHT;
-          console.log(`Collapsing: ${savedSize.current.width}x${savedSize.current.height} -> ${savedSize.current.width}x${targetHeight}`);
-          await appWindow.setSize(new LogicalSize(savedSize.current.width, targetHeight));
+          await t.win.setSize(new t.LogicalSize(savedSize.current.width, COLLAPSED_HEIGHT));
         } else if (savedSize.current) {
-          console.log(`Expanding: -> ${savedSize.current.width}x${savedSize.current.height}`);
-          await appWindow.setSize(new LogicalSize(savedSize.current.width, savedSize.current.height));
+          await t.win.setSize(new t.LogicalSize(savedSize.current.width, savedSize.current.height));
         }
       } catch (e) {
         console.error("toggleCollapse failed:", e);
