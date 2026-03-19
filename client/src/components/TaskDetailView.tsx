@@ -46,24 +46,20 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
 
   const subtasks = task ? tasks.filter((t) => t.parent_id === task.id) : [];
 
-  const titleRef = useRef(title);
-  titleRef.current = title;
-  const taskIdRef = useRef(selectedTaskId);
-  taskIdRef.current = selectedTaskId;
+  // Track the last saved title to avoid redundant saves
+  const lastSavedTitleRef = useRef("");
+  const savePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (task) setTitle(task.title);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTaskId]);
-
-  // Save unsaved title on unmount or when switching tasks
-  useEffect(() => {
-    const savedTaskId = selectedTaskId;
+    if (task) {
+      setTitle(task.title);
+      lastSavedTitleRef.current = task.title;
+    }
     return () => {
-      const store = useTaskStore.getState();
-      const currentTask = store.tasks.find((t) => t.id === savedTaskId);
-      if (currentTask && titleRef.current !== currentTask.title && titleRef.current.trim()) {
-        store.updateTask(currentTask.id, { title: titleRef.current });
+      // Flush pending save on unmount/task switch
+      if (savePendingRef.current) {
+        clearTimeout(savePendingRef.current);
+        savePendingRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,30 +104,29 @@ export function TaskDetailView({ onFocusTask }: TaskDetailViewProps) {
     ? categories.find((c) => c.id === task.category_id)
     : null;
 
-  // Debounced title save — fires 2s after last keystroke
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const originalTitleRef = useRef(task?.title ?? "");
-
-  useEffect(() => {
-    if (task) originalTitleRef.current = task.title;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTaskId]);
+  const saveTitle = useCallback((taskId: string, newTitle: string) => {
+    if (newTitle === lastSavedTitleRef.current || !newTitle.trim()) return;
+    lastSavedTitleRef.current = newTitle;
+    updateTask(taskId, { title: newTitle });
+  }, [updateTask]);
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    if (savePendingRef.current) clearTimeout(savePendingRef.current);
     if (!task || !newTitle.trim()) return;
-    saveTimeoutRef.current = setTimeout(() => {
-      updateTask(task.id, { title: newTitle });
+    const taskId = task.id;
+    savePendingRef.current = setTimeout(() => {
+      saveTitle(taskId, newTitle);
+      savePendingRef.current = null;
     }, 2000);
   };
 
   const handleTitleBlur = () => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (task && title !== originalTitleRef.current && title.trim()) {
-      updateTask(task.id, { title });
-      originalTitleRef.current = title;
+    if (savePendingRef.current) {
+      clearTimeout(savePendingRef.current);
+      savePendingRef.current = null;
     }
+    if (task) saveTitle(task.id, title);
   };
 
   const handleToggleDone = (done: boolean) => {
